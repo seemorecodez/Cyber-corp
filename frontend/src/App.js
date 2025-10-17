@@ -103,6 +103,7 @@ function App() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/hive-mind" element={<HiveMind />} />
           <Route path="/projects" element={<Projects />} />
+          <Route path="/analytics" element={<Analytics />} />
         </Routes>
       </BrowserRouter>
     </div>
