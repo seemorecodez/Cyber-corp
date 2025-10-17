@@ -3,26 +3,48 @@ import { Activity, Shield, Code, CheckCircle2, AlertTriangle, TrendingUp, Zap, U
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
 import { Badge } from '../components/ui/badge';
-import { agents, certifications, activeTasks, recentActivity, securityMetrics, developmentMetrics } from '../mockData';
+import axios from 'axios';
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const API = `${BACKEND_URL}/api`;
 
 const Dashboard = () => {
-  const [activeAgents, setActiveAgents] = useState(agents);
-  const [tasks, setTasks] = useState(activeTasks);
-  const [activities, setActivities] = useState(recentActivity);
+  const [activeAgents, setActiveAgents] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [activities, setActivities] = useState([]);
+  const [certifications, setCertifications] = useState([]);
+  const [securityMetrics, setSecurityMetrics] = useState({});
+  const [developmentMetrics, setDevelopmentMetrics] = useState({});
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate real-time updates
-    const interval = setInterval(() => {
-      setTasks(prevTasks => 
-        prevTasks.map(task => ({
-          ...task,
-          progress: Math.min(100, task.progress + Math.random() * 2)
-        }))
-      );
-    }, 3000);
-
+    fetchData();
+    const interval = setInterval(fetchData, 5000); // Refresh every 5 seconds
     return () => clearInterval(interval);
   }, []);
+
+  const fetchData = async () => {
+    try {
+      const [agentsRes, tasksRes, activitiesRes, certsRes, secMetricsRes, devMetricsRes] = await Promise.all([
+        axios.get(`${API}/agents`),
+        axios.get(`${API}/tasks?status=in_progress`),
+        axios.get(`${API}/activities`),
+        axios.get(`${API}/certifications`),
+        axios.get(`${API}/metrics/security`),
+        axios.get(`${API}/metrics/development`)
+      ]);
+
+      setActiveAgents(agentsRes.data);
+      setTasks(tasksRes.data);
+      setActivities(activitiesRes.data);
+      setCertifications(certsRes.data);
+      setSecurityMetrics(secMetricsRes.data);
+      setDevelopmentMetrics(devMetricsRes.data);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+    }
+  };
 
   const getPriorityColor = (priority) => {
     switch(priority) {
@@ -41,6 +63,25 @@ const Dashboard = () => {
       default: return <Activity className="w-4 h-4 text-blue-500" />;
     }
   };
+
+  const formatTimeAgo = (timestamp) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diff = Math.floor((now - time) / 1000); // in seconds
+    
+    if (diff < 60) return `${diff}s ago`;
+    if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+    if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+    return `${Math.floor(diff / 86400)}d ago`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center">
+        <div className="text-2xl">Loading AI agents...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white p-6">
@@ -75,7 +116,7 @@ const Dashboard = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-orange-400">{securityMetrics.threatsBlocked.toLocaleString()}</div>
+            <div className="text-3xl font-bold text-orange-400">{securityMetrics.threatsBlocked?.toLocaleString()}</div>
             <p className="text-xs text-slate-500 mt-1">Last 30 days</p>
           </CardContent>
         </Card>
@@ -121,7 +162,7 @@ const Dashboard = () => {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {activeAgents.map(agent => (
-                  <div key={agent.id} className="border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-cyan-500/10">
+                  <div key={agent.agent_id} className="border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-all hover:shadow-lg hover:shadow-cyan-500/10">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center">
                         <div className={`w-12 h-12 rounded-full bg-gradient-to-br ${agent.color} flex items-center justify-center font-bold mr-3`}>
@@ -134,13 +175,13 @@ const Dashboard = () => {
                       </div>
                       <div className="flex items-center space-x-1">
                         <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        <span className="text-xs text-green-400">Active</span>
+                        <span className="text-xs text-green-400">{agent.status}</span>
                       </div>
                     </div>
-                    <div className="text-sm text-slate-300 mb-2">{agent.currentTask}</div>
+                    <div className="text-sm text-slate-300 mb-2">{agent.current_task}</div>
                     <div className="flex justify-between text-xs text-slate-500">
-                      <span>{agent.tasksCompleted} tasks</span>
-                      <span className="text-cyan-400">{agent.successRate}% success</span>
+                      <span>{agent.tasks_completed} tasks</span>
+                      <span className="text-cyan-400">{agent.success_rate}% success</span>
                     </div>
                   </div>
                 ))}
@@ -159,24 +200,28 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {tasks.map(task => (
-                  <div key={task.id} className="border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-all">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-1">
-                          <h4 className="font-medium text-sm">{task.title}</h4>
-                          <Badge className={`ml-2 ${getPriorityColor(task.priority)} text-xs`}>
-                            {task.priority}
-                          </Badge>
+                {tasks.length === 0 ? (
+                  <p className="text-slate-400 text-center py-4">No active tasks</p>
+                ) : (
+                  tasks.map(task => (
+                    <div key={task.task_id} className="border border-slate-800 rounded-lg p-4 hover:border-slate-700 transition-all">
+                      <div className="flex items-start justify-between mb-2">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-1">
+                            <h4 className="font-medium text-sm">{task.title}</h4>
+                            <Badge className={`ml-2 ${getPriorityColor(task.priority)} text-xs`}>
+                              {task.priority}
+                            </Badge>
+                          </div>
+                          <p className="text-xs text-slate-400">Assigned to: {task.agent_name || 'Assigning...'}</p>
                         </div>
-                        <p className="text-xs text-slate-400">Assigned to: {task.agent}</p>
+                        <span className="text-xs text-slate-500">{task.eta_minutes}m</span>
                       </div>
-                      <span className="text-xs text-slate-500">{task.eta}</span>
+                      <Progress value={task.progress} className="h-2" />
+                      <div className="text-right text-xs text-slate-500 mt-1">{Math.round(task.progress)}%</div>
                     </div>
-                    <Progress value={task.progress} className="h-2" />
-                    <div className="text-right text-xs text-slate-500 mt-1">{Math.round(task.progress)}%</div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -195,13 +240,13 @@ const Dashboard = () => {
             <CardContent>
               <div className="space-y-3 max-h-96 overflow-y-auto">
                 {activities.map(activity => (
-                  <div key={activity.id} className="flex items-start space-x-3 text-sm pb-3 border-b border-slate-800 last:border-0">
-                    {getActivityIcon(activity.type)}
+                  <div key={activity.activity_id} className="flex items-start space-x-3 text-sm pb-3 border-b border-slate-800 last:border-0">
+                    {getActivityIcon(activity.activity_type)}
                     <div className="flex-1">
                       <p className="text-slate-300">{activity.action}</p>
                       <div className="flex items-center justify-between mt-1">
-                        <span className="text-xs text-slate-500">{activity.agent}</span>
-                        <span className="text-xs text-slate-600">{activity.time}</span>
+                        <span className="text-xs text-slate-500">{activity.agent_name || activity.agent_id}</span>
+                        <span className="text-xs text-slate-600">{formatTimeAgo(activity.timestamp)}</span>
                       </div>
                     </div>
                   </div>
@@ -224,13 +269,13 @@ const Dashboard = () => {
                   <div key={index}>
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium">{cert.name}</span>
-                      <Badge className={cert.status === 'Certified' ? 'bg-green-500' : 'bg-blue-500'}>
-                        {cert.status}
+                      <Badge className={cert.status === 'certified' ? 'bg-green-500' : 'bg-blue-500'}>
+                        {cert.status === 'certified' ? 'Certified' : 'In Progress'}
                       </Badge>
                     </div>
                     <Progress value={cert.progress} className="h-2" />
                     <div className="text-xs text-slate-500 mt-1">
-                      {cert.completed}/{cert.modules} modules completed
+                      {cert.completed_modules}/{cert.total_modules} modules completed
                     </div>
                   </div>
                 ))}
