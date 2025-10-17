@@ -501,27 +501,23 @@ async def broadcast_to_hive(broadcast: HiveBroadcast):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
-# Analytics Endpoints
+# Analytics Endpoints with REAL DATA
 @api_router.get("/analytics/dashboard")
 async def get_dashboard_analytics():
-    """Get comprehensive dashboard analytics"""
+    """Get comprehensive dashboard analytics from REAL data"""
     try:
-        # Task stats
         total_tasks = await db.tasks.count_documents({})
         completed_tasks = await db.tasks.count_documents({"status": "completed"})
         in_progress_tasks = await db.tasks.count_documents({"status": "in_progress"})
         failed_tasks = await db.tasks.count_documents({"status": "failed"})
         
-        # Agent stats
         agents_data = await db.agents.find().to_list(100)
         total_tasks_completed = sum(agent.get("tasks_completed", 0) for agent in agents_data)
         avg_success_rate = sum(agent.get("success_rate", 0) for agent in agents_data) / len(agents_data) if agents_data else 0
         
-        # Time-based activity
         last_24h = datetime.utcnow() - timedelta(hours=24)
         recent_activities = await db.activities.count_documents({"timestamp": {"$gte": last_24h}})
         
-        # Certification stats
         certified_count = await db.certifications.count_documents({"status": "certified"})
         in_progress_certs = await db.certifications.count_documents({"status": "in_progress"})
         
@@ -531,7 +527,7 @@ async def get_dashboard_analytics():
                 "completed": completed_tasks,
                 "in_progress": in_progress_tasks,
                 "failed": failed_tasks,
-                "success_rate": (completed_tasks / total_tasks * 100) if total_tasks > 0 else 0
+                "success_rate": (completed_tasks / total_tasks * 100) if total_tasks > 0 else 100
             },
             "agents": {
                 "total": len(agents_data),
@@ -552,19 +548,21 @@ async def get_dashboard_analytics():
 
 @api_router.get("/analytics/agent-performance")
 async def get_agent_performance():
-    """Get detailed agent performance metrics"""
+    """Get detailed agent performance metrics from REAL data"""
+    global metrics_engine
+    if not metrics_engine:
+        metrics_engine = MetricsEngine(db)
+    
     agents = await db.agents.find().to_list(100)
     performance_data = []
     
     for agent in agents:
         agent_id = agent["agent_id"]
         
-        # Get task stats for this agent
         agent_tasks = await db.tasks.find({"assigned_agent_id": agent_id}).to_list(1000)
         completed = len([t for t in agent_tasks if t.get("status") == "completed"])
         failed = len([t for t in agent_tasks if t.get("status") == "failed"])
         
-        # Calculate average completion time
         completion_times = []
         for task in agent_tasks:
             if task.get("completed_at") and task.get("created_at"):
@@ -573,6 +571,9 @@ async def get_agent_performance():
         
         avg_completion_time = sum(completion_times) / len(completion_times) if completion_times else 0
         
+        # Get efficiency metrics
+        efficiency = await metrics_engine.calculate_agent_efficiency(agent_id)
+        
         performance_data.append({
             "agent_id": agent_id,
             "name": agent["name"],
@@ -580,10 +581,63 @@ async def get_agent_performance():
             "tasks_completed": completed,
             "tasks_failed": failed,
             "success_rate": agent.get("success_rate", 0),
-            "avg_completion_time_minutes": round(avg_completion_time, 2)
+            "avg_completion_time_minutes": round(avg_completion_time, 2),
+            "efficiency_score": efficiency.get("efficiency_score", 0),
+            "quality_score": efficiency.get("quality_score", 0)
         })
     
     return performance_data
+
+# Advanced Search and Filtering
+@api_router.get("/search")
+async def global_search(
+    query: str = Query(..., min_length=1),
+    entity_type: Optional[str] = Query(None),  # tasks, agents, activities
+    limit: int = Query(50, le=100)
+):
+    """Global search across all entities"""
+    results = {
+        "tasks": [],
+        "agents": [],
+        "activities": [],
+        "messages": []
+    }
+    
+    search_regex = {"$regex": query, "$options": "i"}
+    
+    if not entity_type or entity_type == "tasks":
+        tasks = await db.tasks.find({
+            "$or": [
+                {"title": search_regex},
+                {"description": search_regex},
+                {"result": search_regex}
+            ]
+        }).limit(limit).to_list(limit)
+        results["tasks"] = clean_mongo_docs(tasks)
+    
+    if not entity_type or entity_type == "agents":
+        agents = await db.agents.find({
+            "$or": [
+                {"name": search_regex},
+                {"type": search_regex},
+                {"specialization": {"$elemMatch": search_regex}}
+            ]
+        }).limit(limit).to_list(limit)
+        results["agents"] = clean_mongo_docs(agents)
+    
+    if not entity_type or entity_type == "activities":
+        activities = await db.activities.find({
+            "action": search_regex
+        }).limit(limit).to_list(limit)
+        results["activities"] = clean_mongo_docs(activities)
+    
+    if not entity_type or entity_type == "messages":
+        messages = await db.hive_messages.find({
+            "message": search_regex
+        }).limit(limit).to_list(limit)
+        results["messages"] = clean_mongo_docs(messages)
+    
+    return results
 
 # Other Endpoints
 @api_router.get("/activities")
