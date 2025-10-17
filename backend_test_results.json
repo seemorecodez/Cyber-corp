@@ -3,7 +3,7 @@
     "test": "GET /api/agents",
     "success": true,
     "details": "Retrieved 6 agents successfully",
-    "timestamp": "2025-10-17T03:33:54.240462",
+    "timestamp": "2025-10-17T03:35:11.656478",
     "response_data": [
       {
         "agent_id": "agent-1",
@@ -15,7 +15,7 @@
         "avatar": "SA",
         "color": "from-blue-500 to-cyan-500",
         "current_task_id": null,
-        "tasks_completed": 1247,
+        "tasks_completed": 1248,
         "success_rate": 98.5,
         "specialization": [
           "Threat Detection",
@@ -132,7 +132,7 @@
     "test": "GET /api/certifications",
     "success": true,
     "details": "Retrieved 6 certifications: CISSP, CEH, OSCP, CISM, CompTIA Security+, AWS Security",
-    "timestamp": "2025-10-17T03:33:54.247798",
+    "timestamp": "2025-10-17T03:35:11.664145",
     "response_data": [
       {
         "name": "CISSP",
@@ -188,7 +188,7 @@
     "test": "GET /api/metrics/security",
     "success": true,
     "details": "Retrieved security metrics with all required fields",
-    "timestamp": "2025-10-17T03:33:54.254355",
+    "timestamp": "2025-10-17T03:35:11.670995",
     "response_data": {
       "vulnerabilitiesFound": 1247,
       "vulnerabilitiesFixed": 1198,
@@ -201,10 +201,10 @@
   {
     "test": "POST /api/tasks",
     "success": true,
-    "details": "Created task task-eebd9797 assigned to agent-1",
-    "timestamp": "2025-10-17T03:33:54.275293",
+    "details": "Created task task-11a64a56 assigned to agent-1",
+    "timestamp": "2025-10-17T03:35:11.718553",
     "response_data": {
-      "task_id": "task-eebd9797",
+      "task_id": "task-11a64a56",
       "title": "Test Security Scan",
       "description": "Run vulnerability assessment",
       "assigned_agent_id": "agent-1",
@@ -213,7 +213,7 @@
       "progress": 0,
       "eta_minutes": 120,
       "result": null,
-      "created_at": "2025-10-17T03:33:54.260981",
+      "created_at": "2025-10-17T03:35:11.674361",
       "started_at": null,
       "completed_at": null
     }
@@ -222,10 +222,10 @@
     "test": "GET /api/tasks?status=in_progress",
     "success": true,
     "details": "Found 1 in_progress tasks including created task",
-    "timestamp": "2025-10-17T03:33:55.283041",
+    "timestamp": "2025-10-17T03:35:12.727041",
     "response_data": [
       {
-        "task_id": "task-eebd9797",
+        "task_id": "task-11a64a56",
         "title": "Test Security Scan",
         "description": "Run vulnerability assessment",
         "assigned_agent_id": "agent-1",
@@ -234,7 +234,7 @@
         "progress": 0,
         "eta_minutes": 120,
         "result": null,
-        "created_at": "2025-10-17T03:33:54.260000",
+        "created_at": "2025-10-17T03:35:11.674000",
         "started_at": null,
         "completed_at": null,
         "agent_name": "Sentinel"
@@ -243,16 +243,22 @@
   },
   {
     "test": "POST /api/hive/broadcast",
-    "success": false,
-    "details": "Issues: response appears to be mock data or too short",
-    "timestamp": "2025-10-17T03:33:55.299533",
-    "response_data": null
+    "success": true,
+    "details": "AI response from Sentinel: I don\u2019t have telemetry from your environment, so the current security status is unknown. To determin...",
+    "timestamp": "2025-10-17T03:35:50.865830",
+    "response_data": {
+      "primary_agent": "Sentinel",
+      "primary_response": "I don\u2019t have telemetry from your environment, so the current security status is unknown. To determine it quickly, run these high-signal checks and share the results (or tell me your SIEM/EDR so I can tailor commands):\n\nImmediate triage (last 24 hours)\n- SIEM: Count of High/Critical alerts, top 10 rules firing, and any repeated entities (host, user, IP).\n- Identity/IAM: New privileged role assignments, MFA disabled/bypassed, new service principals or app consents.\n- Authentication anomalies: Unusual geo/logon spikes, brute-force patterns, legacy auth use.\n- EDR/AV: High-severity detections, quarantine failures, machines with sensor/AV disabled.\n- Endpoint behavior: Suspicious LOLBins/PowerShell with encoded/base64 commands, script interpreters spawning network connections.\n- Network/Proxy: Outbound connections to newly-seen domains, high-frequency beacons, TOR/VPN egress, spikes to rare countries.\n- Vulnerabilities: New Critical CVEs, public-facing assets with exploitable findings, deltas since last scan.\n- Backups/DR: Last backup job status for critical systems, recent restore test results.\n- Coverage/health: Percent of endpoints reporting to SIEM/EDR, data latency >30 min.\n\nIf you use Microsoft Sentinel (KQL)\n- High/Critical alerts:\n  SecurityAlert\n  | where TimeGenerated > ago(24h) and Severity == \"High\"\n  | summarize count() by ProviderName, AlertName, tostring(CompromisedEntity)\n  | order by count_ desc\n- New privileged role assignments:\n  AuditLogs\n  | where TimeGenerated > ago(24h) and OperationName has \"Add member to role\"\n  | extend Role=tostring(TargetResources[0].displayName)\n  | where Role has_any (\"Global Administrator\",\"Privileged Role Administrator\",\"User Access Administrator\")\n  | project TimeGenerated, InitiatedBy=tostring(InitiatedBy.user.userPrincipalName), Role, Target=tostring(TargetResources[0].userPrincipalName)\n- MFA disabled/changed:\n  AuditLogs\n  | where TimeGenerated > ago(24h) and OperationName has_any (\"Update user\",\"Disable Strong Authentication\",\"Reset Strong Authentication\")\n  | project TimeGenerated, OperationName, InitiatedBy=tostring(InitiatedBy.user.userPrincipalName), Target=tostring(TargetResources[0].userPrincipalName), ResultDescription\n- Sign-in geo anomalies (simple multi-country heuristic):\n  SigninLogs\n  | where TimeGenerated > ago(24h)\n  | summarize countries=make_set(LocationDetails.countryOrRegion) by UserPrincipalName\n  | where array_length(countries) > 1\n- Defender for Endpoint high severity:\n  SecurityAlert\n  | where TimeGenerated > ago(24h) and ProviderName =~ \"MDATP\" and Severity == \"High\"\n  | summarize count() by AlertName, tostring(CompromisedEntity)\n- Suspicious process execution:\n  DeviceProcessEvents\n  | where TimeGenerated > ago(24h)\n  | where ProcessCommandLine has_any (\" -enc \", \"FromBase64String\", \"DownloadString\", \"Invoke-WebRequest\", \"rundll32\", \"regsvr32\", \"mshta\", \"bitsadmin\", \"wscript.exe\", \"cscript.exe\")\n  | project TimeGenerated, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine\n  | top 25 by TimeGenerated desc\n\nIf you use Splunk (SPL)\n- High/Critical alerts:\n  index=* (sourcetype=security:alert OR tag=attack) severity IN (\"high\",\"critical\") earliest=-24h\n  | stats count by source AlertName dest user\n  | sort - count\n- Privileged role changes (Azure AD example):\n  index=o365 sourcetype=\"o365:management:activity\" Operation=\"Add member to role\" earliest=-24h\n  | table _time Actor[].ID Target[].ID ModifiedProperties[].NewValue\n- MFA changes (Azure AD):\n  index=o365 sourcetype=\"o365:management:activity\" earliest=-24h (Operation=\"Update user\" OR Operation=\"Reset strong authentication\" OR Operation=\"Disable Strong Authentication\")\n  | table _time Actor[].ID Target[].ID Operation ResultStatus\n- Multi-country sign-ins:\n  index=o365 sourcetype=\"azure:signin\" earliest=-24h\n  | stats dc(LocationDetails.countryOrRegion) as countries by UserPrincipalName\n  | where countries>1\n- EDR high severity (Defender example):\n  index=mded earliest=-24h AlertSeverity=High\n  | stats count by DeviceName ThreatName\n- Suspicious processes:\n  index=edr sourcetype=processes earliest=-24h\n  | search (cmdline=\"* -enc *\" OR cmdline=\"*FromBase64String*\" OR cmdline=\"*Invoke-WebRequest*\" OR process IN (rundll32.exe,regsvr32.exe,mshta.exe,bitsadmin.exe,wscript.exe,cscript.exe))\n  | table _time host user process cmdline\n\nWhat to send me\n- Counts and top offenders from the above, plus any High/Critical alerts and their entities.\n- Any recent privileged IAM changes and whether they were approved.\n- Number of endpoints not reporting to EDR/SIEM and any disabled protections.\n- Any Critical external-facing vulnerabilities detected since the last scan.\n- Status of last backups for key systems.\n\nWith those, I can provide a clear status (Green/Amber/Red) and next actions. If you tell me your tooling (e.g., Sentinel, Splunk, QRadar, Defender, CrowdStrike, Okta), I\u2019ll tailor exact queries and dashboards.",
+      "all_responses": {
+        "Sentinel": "I don\u2019t have telemetry from your environment, so the current security status is unknown. To determine it quickly, run these high-signal checks and share the results (or tell me your SIEM/EDR so I can tailor commands):\n\nImmediate triage (last 24 hours)\n- SIEM: Count of High/Critical alerts, top 10 rules firing, and any repeated entities (host, user, IP).\n- Identity/IAM: New privileged role assignments, MFA disabled/bypassed, new service principals or app consents.\n- Authentication anomalies: Unusual geo/logon spikes, brute-force patterns, legacy auth use.\n- EDR/AV: High-severity detections, quarantine failures, machines with sensor/AV disabled.\n- Endpoint behavior: Suspicious LOLBins/PowerShell with encoded/base64 commands, script interpreters spawning network connections.\n- Network/Proxy: Outbound connections to newly-seen domains, high-frequency beacons, TOR/VPN egress, spikes to rare countries.\n- Vulnerabilities: New Critical CVEs, public-facing assets with exploitable findings, deltas since last scan.\n- Backups/DR: Last backup job status for critical systems, recent restore test results.\n- Coverage/health: Percent of endpoints reporting to SIEM/EDR, data latency >30 min.\n\nIf you use Microsoft Sentinel (KQL)\n- High/Critical alerts:\n  SecurityAlert\n  | where TimeGenerated > ago(24h) and Severity == \"High\"\n  | summarize count() by ProviderName, AlertName, tostring(CompromisedEntity)\n  | order by count_ desc\n- New privileged role assignments:\n  AuditLogs\n  | where TimeGenerated > ago(24h) and OperationName has \"Add member to role\"\n  | extend Role=tostring(TargetResources[0].displayName)\n  | where Role has_any (\"Global Administrator\",\"Privileged Role Administrator\",\"User Access Administrator\")\n  | project TimeGenerated, InitiatedBy=tostring(InitiatedBy.user.userPrincipalName), Role, Target=tostring(TargetResources[0].userPrincipalName)\n- MFA disabled/changed:\n  AuditLogs\n  | where TimeGenerated > ago(24h) and OperationName has_any (\"Update user\",\"Disable Strong Authentication\",\"Reset Strong Authentication\")\n  | project TimeGenerated, OperationName, InitiatedBy=tostring(InitiatedBy.user.userPrincipalName), Target=tostring(TargetResources[0].userPrincipalName), ResultDescription\n- Sign-in geo anomalies (simple multi-country heuristic):\n  SigninLogs\n  | where TimeGenerated > ago(24h)\n  | summarize countries=make_set(LocationDetails.countryOrRegion) by UserPrincipalName\n  | where array_length(countries) > 1\n- Defender for Endpoint high severity:\n  SecurityAlert\n  | where TimeGenerated > ago(24h) and ProviderName =~ \"MDATP\" and Severity == \"High\"\n  | summarize count() by AlertName, tostring(CompromisedEntity)\n- Suspicious process execution:\n  DeviceProcessEvents\n  | where TimeGenerated > ago(24h)\n  | where ProcessCommandLine has_any (\" -enc \", \"FromBase64String\", \"DownloadString\", \"Invoke-WebRequest\", \"rundll32\", \"regsvr32\", \"mshta\", \"bitsadmin\", \"wscript.exe\", \"cscript.exe\")\n  | project TimeGenerated, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine\n  | top 25 by TimeGenerated desc\n\nIf you use Splunk (SPL)\n- High/Critical alerts:\n  index=* (sourcetype=security:alert OR tag=attack) severity IN (\"high\",\"critical\") earliest=-24h\n  | stats count by source AlertName dest user\n  | sort - count\n- Privileged role changes (Azure AD example):\n  index=o365 sourcetype=\"o365:management:activity\" Operation=\"Add member to role\" earliest=-24h\n  | table _time Actor[].ID Target[].ID ModifiedProperties[].NewValue\n- MFA changes (Azure AD):\n  index=o365 sourcetype=\"o365:management:activity\" earliest=-24h (Operation=\"Update user\" OR Operation=\"Reset strong authentication\" OR Operation=\"Disable Strong Authentication\")\n  | table _time Actor[].ID Target[].ID Operation ResultStatus\n- Multi-country sign-ins:\n  index=o365 sourcetype=\"azure:signin\" earliest=-24h\n  | stats dc(LocationDetails.countryOrRegion) as countries by UserPrincipalName\n  | where countries>1\n- EDR high severity (Defender example):\n  index=mded earliest=-24h AlertSeverity=High\n  | stats count by DeviceName ThreatName\n- Suspicious processes:\n  index=edr sourcetype=processes earliest=-24h\n  | search (cmdline=\"* -enc *\" OR cmdline=\"*FromBase64String*\" OR cmdline=\"*Invoke-WebRequest*\" OR process IN (rundll32.exe,regsvr32.exe,mshta.exe,bitsadmin.exe,wscript.exe,cscript.exe))\n  | table _time host user process cmdline\n\nWhat to send me\n- Counts and top offenders from the above, plus any High/Critical alerts and their entities.\n- Any recent privileged IAM changes and whether they were approved.\n- Number of endpoints not reporting to EDR/SIEM and any disabled protections.\n- Any Critical external-facing vulnerabilities detected since the last scan.\n- Status of last backups for key systems.\n\nWith those, I can provide a clear status (Green/Amber/Red) and next actions. If you tell me your tooling (e.g., Sentinel, Splunk, QRadar, Defender, CrowdStrike, Okta), I\u2019ll tailor exact queries and dashboards."
+      }
+    }
   },
   {
     "test": "GET /api/hive/messages",
     "success": true,
-    "details": "Retrieved 2 hive messages",
-    "timestamp": "2025-10-17T03:33:56.307681",
+    "details": "Retrieved 6 hive messages",
+    "timestamp": "2025-10-17T03:35:51.877861",
     "response_data": [
       {
         "message_id": "msg-ea4e755c",
@@ -275,14 +281,67 @@
         "read": false,
         "from_agent_name": "System",
         "to_agent_name": "Unknown"
+      },
+      {
+        "message_id": "msg-a94e3efe",
+        "from_agent_id": "system",
+        "to_agent_id": "all",
+        "message": "User query: What is the current security status?",
+        "message_type": "request",
+        "timestamp": "2025-10-17T03:35:02.652000",
+        "read": false,
+        "from_agent_name": "System",
+        "to_agent_name": "All"
+      },
+      {
+        "message_id": "msg-49c10f8f",
+        "from_agent_id": "Sentinel",
+        "to_agent_id": "system",
+        "message": "I don\u2019t have access to your environment or telemetry, so I can\u2019t state your current security status yet. If you can share your SIEM/EDR alerts, recent audit logs, or confirm the platform you use (e.g....",
+        "message_type": "info",
+        "timestamp": "2025-10-17T03:35:02.656000",
+        "read": false,
+        "from_agent_name": "System",
+        "to_agent_name": "Unknown"
+      },
+      {
+        "message_id": "msg-aa51fcb4",
+        "from_agent_id": "system",
+        "to_agent_id": "all",
+        "message": "User query: What is the current security status?",
+        "message_type": "request",
+        "timestamp": "2025-10-17T03:35:50.857000",
+        "read": false,
+        "from_agent_name": "System",
+        "to_agent_name": "All"
+      },
+      {
+        "message_id": "msg-adb659bf",
+        "from_agent_id": "Sentinel",
+        "to_agent_id": "system",
+        "message": "I don\u2019t have telemetry from your environment, so the current security status is unknown. To determine it quickly, run these high-signal checks and share the results (or tell me your SIEM/EDR so I can ...",
+        "message_type": "info",
+        "timestamp": "2025-10-17T03:35:50.861000",
+        "read": false,
+        "from_agent_name": "System",
+        "to_agent_name": "Unknown"
       }
     ]
   },
   {
     "test": "GET /api/activities",
     "success": true,
-    "details": "Retrieved 0 activities",
-    "timestamp": "2025-10-17T03:33:56.315123",
-    "response_data": []
+    "details": "Retrieved 1 activities",
+    "timestamp": "2025-10-17T03:35:51.924857",
+    "response_data": [
+      {
+        "activity_id": "act-a9bffbc4",
+        "agent_id": "agent-1",
+        "action": "Completed task: Test Security Scan",
+        "activity_type": "success",
+        "timestamp": "2025-10-17T03:34:00.280000",
+        "agent_name": "Sentinel"
+      }
+    ]
   }
 ]
