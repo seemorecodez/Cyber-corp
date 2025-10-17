@@ -353,6 +353,7 @@ async def process_task_background(task_id: str, agent_id: str):
 async def get_hive_messages(limit: int = Query(50)):
     """Get recent inter-agent messages"""
     messages = await db.hive_messages.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    messages = clean_mongo_docs(messages)
     
     # Add agent names
     for msg in messages:
