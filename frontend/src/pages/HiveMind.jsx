@@ -191,22 +191,22 @@ const HiveMind = () => {
               {/* Messages */}
               <div className="flex-1 overflow-y-auto mb-4 space-y-3 pr-2">
                 {messages.map(msg => (
-                  <div key={msg.id} className={`p-3 rounded-lg ${
-                    msg.isUser 
+                  <div key={msg.message_id} className={`p-3 rounded-lg ${
+                    msg.isUser || msg.from_agent_id === 'user'
                       ? 'bg-blue-900/30 border border-blue-800 ml-12' 
                       : 'bg-slate-800/50 border border-slate-700 mr-12'
                   }`}>
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center">
                         <span className={`font-semibold text-sm ${
-                          msg.isUser ? 'text-blue-400' : 'text-cyan-400'
+                          msg.isUser || msg.from_agent_id === 'user' ? 'text-blue-400' : 'text-cyan-400'
                         }`}>
-                          {msg.from}
+                          {msg.from_agent_name || msg.from}
                         </span>
                         <span className="text-slate-500 text-xs mx-2">→</span>
-                        <span className="text-slate-400 text-xs">{msg.to}</span>
+                        <span className="text-slate-400 text-xs">{msg.to_agent_name || msg.to}</span>
                       </div>
-                      <span className="text-xs text-slate-500">{msg.timestamp}</span>
+                      <span className="text-xs text-slate-500">{formatTimestamp(msg.timestamp)}</span>
                     </div>
                     <p className="text-sm text-slate-300">{msg.message}</p>
                   </div>
