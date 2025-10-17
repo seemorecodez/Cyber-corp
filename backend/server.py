@@ -318,7 +318,6 @@ async def process_task_background(task_id: str, agent_id: str):
         )
         
         # Log activity
-        agent_data = await db.agents.find_one({"agent_id": agent_id})
         activity = Activity(
             agent_id=agent_id,
             action=f"Completed task: {task['title']}",
