@@ -192,7 +192,7 @@ async def get_agent(agent_id: str):
     agent = await db.agents.find_one({"agent_id": agent_id})
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
-    return agent
+    return clean_mongo_doc(agent)
 
 @api_router.post("/agents/{agent_id}/chat")
 async def chat_with_agent(agent_id: str, message: ChatMessage):
