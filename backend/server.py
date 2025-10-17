@@ -606,28 +606,19 @@ async def get_certifications():
 
 @api_router.get("/metrics/security")
 async def get_security_metrics():
-    """Get security metrics dashboard data"""
-    return {
-        "vulnerabilitiesFound": 1247,
-        "vulnerabilitiesFixed": 1198,
-        "threatsBlocked": 8934,
-        "uptime": 99.97,
-        "avgResponseTime": "1.2s",
-        "securityScore": 96
-    }
+    """Get REAL security metrics calculated from actual data"""
+    global metrics_engine
+    if not metrics_engine:
+        metrics_engine = MetricsEngine(db)
+    return await metrics_engine.calculate_security_metrics()
 
 @api_router.get("/metrics/development")
 async def get_development_metrics():
-    """Get development metrics dashboard data"""
-    projects_count = await db.projects.count_documents({})
-    return {
-        "projectsCompleted": projects_count if projects_count > 0 else 87,
-        "codeReviews": 432,
-        "deploymentsToday": 23,
-        "testCoverage": 94.5,
-        "bugsFixed": 156,
-        "performance": 98
-    }
+    """Get REAL development metrics calculated from actual data"""
+    global metrics_engine
+    if not metrics_engine:
+        metrics_engine = MetricsEngine(db)
+    return await metrics_engine.calculate_development_metrics()
 
 @api_router.get("/health")
 async def health_check():
