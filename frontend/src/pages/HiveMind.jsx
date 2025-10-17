@@ -10,9 +10,11 @@ const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
 
 const HiveMind = () => {
-  const [messages, setMessages] = useState(hiveMindMessages);
+  const [messages, setMessages] = useState([]);
+  const [agents, setAgents] = useState([]);
   const [userMessage, setUserMessage] = useState('');
-  const [activeConnections, setActiveConnections] = useState(agents.length * (agents.length - 1));
+  const [activeConnections, setActiveConnections] = useState(30);
+  const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -24,57 +26,92 @@ const HiveMind = () => {
   }, [messages]);
 
   useEffect(() => {
-    // Simulate agent communication
-    const interval = setInterval(() => {
-      const randomAgent = agents[Math.floor(Math.random() * agents.length)];
-      const actions = [
-        'Processing security scan results',
-        'Analyzing code patterns',
-        'Updating threat intelligence',
-        'Optimizing deployment pipeline',
-        'Reviewing compliance requirements',
-        'Coordinating with team members'
-      ];
-      const newMessage = {
-        id: messages.length + 1,
-        from: randomAgent.name,
-        to: 'All',
-        message: actions[Math.floor(Math.random() * actions.length)],
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages(prev => [...prev, newMessage]);
-    }, 8000);
-
+    fetchAgents();
+    fetchMessages();
+    
+    // Poll for new messages every 5 seconds
+    const interval = setInterval(fetchMessages, 5000);
     return () => clearInterval(interval);
-  }, [messages.length]);
+  }, []);
 
-  const handleSendMessage = () => {
-    if (!userMessage.trim()) return;
+  const fetchAgents = async () => {
+    try {
+      const response = await axios.get(`${API}/agents`);
+      setAgents(response.data);
+      setActiveConnections(response.data.length * (response.data.length - 1));
+    } catch (error) {
+      console.error('Error fetching agents:', error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const response = await axios.get(`${API}/hive/messages`);
+      setMessages(response.data);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+    }
+  };
+
+  const formatTimestamp = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleSendMessage = async () => {
+    if (!userMessage.trim() || loading) return;
 
     const newUserMessage = {
-      id: messages.length + 1,
-      from: 'You',
-      to: 'Hive Mind',
+      message_id: `msg-${Date.now()}`,
+      from_agent_id: 'user',
+      to_agent_id: 'all',
       message: userMessage,
-      timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-      isUser: true
+      timestamp: new Date().toISOString(),
+      isUser: true,
+      from_agent_name: 'You',
+      to_agent_name: 'Hive Mind'
     };
 
     setMessages(prev => [...prev, newUserMessage]);
+    const messageToSend = userMessage;
     setUserMessage('');
+    setLoading(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const respondingAgent = agents[Math.floor(Math.random() * agents.length)];
+    try {
+      const response = await axios.post(`${API}/hive/broadcast`, {
+        message: messageToSend
+      });
+
+      // Add AI response
       const aiResponse = {
-        id: messages.length + 2,
-        from: respondingAgent.name,
-        to: 'You',
-        message: `Processing your request. The hive mind is analyzing and coordinating the best approach.`,
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })
+        message_id: `msg-${Date.now()}-ai`,
+        from_agent_id: response.data.primary_agent,
+        to_agent_id: 'user',
+        message: response.data.primary_response,
+        timestamp: new Date().toISOString(),
+        from_agent_name: response.data.primary_agent,
+        to_agent_name: 'You'
       };
+
       setMessages(prev => [...prev, aiResponse]);
-    }, 1500);
+      
+      // Refresh messages to get all updates
+      await fetchMessages();
+    } catch (error) {
+      console.error('Error sending message:', error);
+      const errorMessage = {
+        message_id: `msg-${Date.now()}-error`,
+        from_agent_id: 'system',
+        to_agent_id: 'user',
+        message: 'Error communicating with hive mind. Please try again.',
+        timestamp: new Date().toISOString(),
+        from_agent_name: 'System',
+        to_agent_name: 'You'
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
