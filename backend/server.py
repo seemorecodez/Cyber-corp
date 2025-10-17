@@ -153,8 +153,10 @@ async def get_agents():
     """Get all AI agents with their current status"""
     agents = await db.agents.find().to_list(100)
     
-    # Add current task info
+    # Remove MongoDB _id field and add current task info
+    result = []
     for agent in agents:
+        agent.pop('_id', None)  # Remove _id
         if agent.get("current_task_id"):
             task = await db.tasks.find_one({"task_id": agent["current_task_id"]})
             agent["current_task"] = task.get("title") if task else "Processing task"
@@ -169,8 +171,9 @@ async def get_agents():
                 "Compliance Expert": "Generating SOC 2 Type II documentation"
             }
             agent["current_task"] = task_map.get(agent.get("type"), "Idle")
+        result.append(agent)
     
-    return agents
+    return result
 
 @api_router.get("/agents/{agent_id}")
 async def get_agent(agent_id: str):
