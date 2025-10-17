@@ -240,6 +240,7 @@ async def get_tasks(
         query["assigned_agent_id"] = agent_id
     
     tasks = await db.tasks.find(query).sort("created_at", -1).to_list(100)
+    tasks = clean_mongo_docs(tasks)
     
     # Add agent names
     for task in tasks:
