@@ -14,7 +14,8 @@ const Navigation = () => {
   const navItems = [
     { path: '/', icon: Home, label: 'Dashboard' },
     { path: '/hive-mind', icon: Network, label: 'Hive Mind' },
-    { path: '/projects', icon: Code2, label: 'Projects' }
+    { path: '/projects', icon: Code2, label: 'Projects' },
+    { path: '/analytics', icon: BarChart3, label: 'Analytics' }
   ];
 
   const isActive = (path) => location.pathname === path;
