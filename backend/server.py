@@ -18,6 +18,8 @@ from models import (
     Project, Activity, Certification, ChatMessage, ChatResponse
 )
 from agent_system import orchestrator
+from security_engine import security_analyzer
+from metrics_engine import MetricsEngine
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
