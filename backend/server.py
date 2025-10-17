@@ -401,6 +401,7 @@ async def broadcast_to_hive(broadcast: HiveBroadcast):
 async def get_activities(limit: int = Query(20)):
     """Get recent activities"""
     activities = await db.activities.find().sort("timestamp", -1).limit(limit).to_list(limit)
+    activities = clean_mongo_docs(activities)
     
     # Add agent names
     for activity in activities:
@@ -413,7 +414,7 @@ async def get_activities(limit: int = Query(20)):
 async def get_certifications():
     """Get all certifications with progress"""
     certifications = await db.certifications.find().to_list(100)
-    return certifications
+    return clean_mongo_docs(certifications)
 
 @api_router.get("/metrics/security")
 async def get_security_metrics():
