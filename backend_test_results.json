@@ -1,0 +1,288 @@
+[
+  {
+    "test": "GET /api/agents",
+    "success": true,
+    "details": "Retrieved 6 agents successfully",
+    "timestamp": "2025-10-17T03:33:54.240462",
+    "response_data": [
+      {
+        "agent_id": "agent-1",
+        "name": "Sentinel",
+        "type": "Security Analyst",
+        "status": "active",
+        "model_provider": "openai",
+        "model_name": "gpt-5",
+        "avatar": "SA",
+        "color": "from-blue-500 to-cyan-500",
+        "current_task_id": null,
+        "tasks_completed": 1247,
+        "success_rate": 98.5,
+        "specialization": [
+          "Threat Detection",
+          "Risk Assessment",
+          "SIEM Analysis"
+        ],
+        "created_at": "2025-10-17T03:25:27.873000",
+        "current_task": "Analyzing network traffic patterns"
+      },
+      {
+        "agent_id": "agent-2",
+        "name": "Phoenix",
+        "type": "Penetration Tester",
+        "status": "active",
+        "model_provider": "anthropic",
+        "model_name": "claude-4-sonnet-20250514",
+        "avatar": "PT",
+        "color": "from-red-500 to-orange-500",
+        "current_task_id": null,
+        "tasks_completed": 892,
+        "success_rate": 96.2,
+        "specialization": [
+          "Web App Testing",
+          "Network Pentesting",
+          "Social Engineering"
+        ],
+        "created_at": "2025-10-17T03:25:27.873000",
+        "current_task": "Running OWASP Top 10 vulnerability scan"
+      },
+      {
+        "agent_id": "agent-3",
+        "name": "Cipher",
+        "type": "Cryptography Expert",
+        "status": "active",
+        "model_provider": "gemini",
+        "model_name": "gemini-2.5-pro",
+        "avatar": "CE",
+        "color": "from-purple-500 to-pink-500",
+        "current_task_id": null,
+        "tasks_completed": 654,
+        "success_rate": 99.1,
+        "specialization": [
+          "Encryption",
+          "Key Management",
+          "Blockchain Security"
+        ],
+        "created_at": "2025-10-17T03:25:27.873000",
+        "current_task": "Implementing zero-knowledge proof protocol"
+      },
+      {
+        "agent_id": "agent-4",
+        "name": "Architect",
+        "type": "Software Developer",
+        "status": "active",
+        "model_provider": "openai",
+        "model_name": "gpt-5",
+        "avatar": "SD",
+        "color": "from-green-500 to-emerald-500",
+        "current_task_id": null,
+        "tasks_completed": 2103,
+        "success_rate": 97.8,
+        "specialization": [
+          "Full-Stack Dev",
+          "Cloud Architecture",
+          "API Design"
+        ],
+        "created_at": "2025-10-17T03:25:27.873000",
+        "current_task": "Developing microservices architecture"
+      },
+      {
+        "agent_id": "agent-5",
+        "name": "Validator",
+        "type": "Code Reviewer",
+        "status": "active",
+        "model_provider": "anthropic",
+        "model_name": "claude-4-sonnet-20250514",
+        "avatar": "CR",
+        "color": "from-yellow-500 to-amber-500",
+        "current_task_id": null,
+        "tasks_completed": 1876,
+        "success_rate": 98.9,
+        "specialization": [
+          "Static Analysis",
+          "Code Quality",
+          "Security Audit"
+        ],
+        "created_at": "2025-10-17T03:25:27.873000",
+        "current_task": "Reviewing authentication module for vulnerabilities"
+      },
+      {
+        "agent_id": "agent-6",
+        "name": "Guardian",
+        "type": "Compliance Expert",
+        "status": "active",
+        "model_provider": "gemini",
+        "model_name": "gemini-2.5-pro",
+        "avatar": "CM",
+        "color": "from-indigo-500 to-blue-500",
+        "current_task_id": null,
+        "tasks_completed": 543,
+        "success_rate": 99.7,
+        "specialization": [
+          "GDPR",
+          "HIPAA",
+          "SOC 2",
+          "ISO 27001"
+        ],
+        "created_at": "2025-10-17T03:25:27.873000",
+        "current_task": "Generating SOC 2 Type II documentation"
+      }
+    ]
+  },
+  {
+    "test": "GET /api/certifications",
+    "success": true,
+    "details": "Retrieved 6 certifications: CISSP, CEH, OSCP, CISM, CompTIA Security+, AWS Security",
+    "timestamp": "2025-10-17T03:33:54.247798",
+    "response_data": [
+      {
+        "name": "CISSP",
+        "progress": 87,
+        "status": "in_progress",
+        "total_modules": 8,
+        "completed_modules": 7,
+        "last_updated": "2025-10-17T03:25:27.884000"
+      },
+      {
+        "name": "CEH",
+        "progress": 100,
+        "status": "certified",
+        "total_modules": 20,
+        "completed_modules": 20,
+        "last_updated": "2025-10-17T03:25:27.884000"
+      },
+      {
+        "name": "OSCP",
+        "progress": 62,
+        "status": "in_progress",
+        "total_modules": 12,
+        "completed_modules": 7,
+        "last_updated": "2025-10-17T03:25:27.884000"
+      },
+      {
+        "name": "CISM",
+        "progress": 100,
+        "status": "certified",
+        "total_modules": 4,
+        "completed_modules": 4,
+        "last_updated": "2025-10-17T03:25:27.884000"
+      },
+      {
+        "name": "CompTIA Security+",
+        "progress": 100,
+        "status": "certified",
+        "total_modules": 6,
+        "completed_modules": 6,
+        "last_updated": "2025-10-17T03:25:27.884000"
+      },
+      {
+        "name": "AWS Security",
+        "progress": 45,
+        "status": "in_progress",
+        "total_modules": 10,
+        "completed_modules": 4,
+        "last_updated": "2025-10-17T03:25:27.884000"
+      }
+    ]
+  },
+  {
+    "test": "GET /api/metrics/security",
+    "success": true,
+    "details": "Retrieved security metrics with all required fields",
+    "timestamp": "2025-10-17T03:33:54.254355",
+    "response_data": {
+      "vulnerabilitiesFound": 1247,
+      "vulnerabilitiesFixed": 1198,
+      "threatsBlocked": 8934,
+      "uptime": 99.97,
+      "avgResponseTime": "1.2s",
+      "securityScore": 96
+    }
+  },
+  {
+    "test": "POST /api/tasks",
+    "success": true,
+    "details": "Created task task-eebd9797 assigned to agent-1",
+    "timestamp": "2025-10-17T03:33:54.275293",
+    "response_data": {
+      "task_id": "task-eebd9797",
+      "title": "Test Security Scan",
+      "description": "Run vulnerability assessment",
+      "assigned_agent_id": "agent-1",
+      "priority": "high",
+      "status": "in_progress",
+      "progress": 0,
+      "eta_minutes": 120,
+      "result": null,
+      "created_at": "2025-10-17T03:33:54.260981",
+      "started_at": null,
+      "completed_at": null
+    }
+  },
+  {
+    "test": "GET /api/tasks?status=in_progress",
+    "success": true,
+    "details": "Found 1 in_progress tasks including created task",
+    "timestamp": "2025-10-17T03:33:55.283041",
+    "response_data": [
+      {
+        "task_id": "task-eebd9797",
+        "title": "Test Security Scan",
+        "description": "Run vulnerability assessment",
+        "assigned_agent_id": "agent-1",
+        "priority": "high",
+        "status": "in_progress",
+        "progress": 0,
+        "eta_minutes": 120,
+        "result": null,
+        "created_at": "2025-10-17T03:33:54.260000",
+        "started_at": null,
+        "completed_at": null,
+        "agent_name": "Sentinel"
+      }
+    ]
+  },
+  {
+    "test": "POST /api/hive/broadcast",
+    "success": false,
+    "details": "Issues: response appears to be mock data or too short",
+    "timestamp": "2025-10-17T03:33:55.299533",
+    "response_data": null
+  },
+  {
+    "test": "GET /api/hive/messages",
+    "success": true,
+    "details": "Retrieved 2 hive messages",
+    "timestamp": "2025-10-17T03:33:56.307681",
+    "response_data": [
+      {
+        "message_id": "msg-ea4e755c",
+        "from_agent_id": "system",
+        "to_agent_id": "all",
+        "message": "User query: What is the current security status?",
+        "message_type": "request",
+        "timestamp": "2025-10-17T03:33:55.287000",
+        "read": false,
+        "from_agent_name": "System",
+        "to_agent_name": "All"
+      },
+      {
+        "message_id": "msg-52bff29c",
+        "from_agent_id": "Sentinel",
+        "to_agent_id": "system",
+        "message": "Error processing request: Failed to generate chat completion: 'NoneType' object has no attribute 'startswith'...",
+        "message_type": "info",
+        "timestamp": "2025-10-17T03:33:55.297000",
+        "read": false,
+        "from_agent_name": "System",
+        "to_agent_name": "Unknown"
+      }
+    ]
+  },
+  {
+    "test": "GET /api/activities",
+    "success": true,
+    "details": "Retrieved 0 activities",
+    "timestamp": "2025-10-17T03:33:56.315123",
+    "response_data": []
+  }
+]
