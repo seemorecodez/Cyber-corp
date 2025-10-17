@@ -622,18 +622,82 @@ async def get_development_metrics():
 
 @api_router.get("/health")
 async def health_check():
-    """System health check"""
+    """System health check with REAL metrics"""
+    global metrics_engine
+    if not metrics_engine:
+        metrics_engine = MetricsEngine(db)
+    
     try:
-        await db.command("ping")
+        health_data = await metrics_engine.get_system_health()
         return {
-            "status": "healthy",
-            "database": "connected",
+            **health_data,
             "agents": len(orchestrator.get_all_agents()),
-            "active_websockets": len(active_connections),
-            "timestamp": datetime.utcnow().isoformat()
+            "active_websockets": len(active_connections)
         }
     except Exception as e:
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
+
+# Security Scanning Endpoints
+@api_router.post("/security/scan-code")
+async def scan_code(data: dict):
+    """Scan code for vulnerabilities"""
+    code = data.get('code', '')
+    language = data.get('language', 'python')
+    
+    if not code:
+        raise HTTPException(status_code=400, detail="Code is required")
+    
+    result = await security_analyzer.scan_code(code, language)
+    
+    # Log scan as activity
+    activity = Activity(
+        agent_id="agent-1",  # Sentinel
+        action=f"Scanned {language} code - found {result['total_found']} vulnerabilities",
+        activity_type="alert" if result['total_found'] > 0 else "success"
+    )
+    await db.activities.insert_one(activity.dict())
+    
+    return result
+
+@api_router.post("/security/detect-threats")
+async def detect_threats(data: dict):
+    """Real-time threat detection"""
+    result = await security_analyzer.detect_threats(data)
+    
+    if result['threats_detected'] > 0:
+        activity = Activity(
+            agent_id="agent-1",
+            action=f"Detected {result['threats_detected']} threats - Risk: {result['risk_level']}",
+            activity_type="alert"
+        )
+        await db.activities.insert_one(activity.dict())
+    
+    return result
+
+@api_router.post("/security/analyze-traffic")
+async def analyze_traffic(data: dict):
+    """Analyze network traffic"""
+    traffic_data = data.get('traffic', [])
+    result = await security_analyzer.analyze_network_traffic(traffic_data)
+    
+    return result
+
+@api_router.post("/security/check-compliance")
+async def check_compliance(data: dict):
+    """Check compliance with standards"""
+    system_config = data.get('config', {})
+    standards = data.get('standards', ['GDPR', 'HIPAA', 'SOC2', 'ISO27001'])
+    
+    result = await security_analyzer.check_compliance(system_config, standards)
+    
+    activity = Activity(
+        agent_id="agent-6",  # Guardian
+        action=f"Compliance check: {result['overall_score']:.1f}% compliant",
+        activity_type="success" if result['overall_score'] >= 80 else "warning"
+    )
+    await db.activities.insert_one(activity.dict())
+    
+    return result
 
 @api_router.get("/")
 async def root():
