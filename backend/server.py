@@ -30,6 +30,17 @@ app = FastAPI()
 # Create a router with the /api prefix
 api_router = APIRouter(prefix="/api")
 
+# Helper function to clean MongoDB documents
+def clean_mongo_doc(doc):
+    """Remove MongoDB _id field from document"""
+    if doc and '_id' in doc:
+        doc.pop('_id')
+    return doc
+
+def clean_mongo_docs(docs):
+    """Remove MongoDB _id field from list of documents"""
+    return [clean_mongo_doc(doc) for doc in docs]
+
 # Initialize default data
 async def initialize_database():
     """Initialize database with default agents and data"""
