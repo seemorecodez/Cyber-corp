@@ -47,6 +47,9 @@ api_router = APIRouter(prefix="/api")
 # Scheduler for automated tasks
 scheduler = AsyncIOScheduler()
 
+# Initialize metrics engine
+metrics_engine = None
+
 # Helper functions
 def clean_mongo_doc(doc):
     """Remove MongoDB _id field from document"""
