@@ -219,15 +219,17 @@ const HiveMind = () => {
                 <Input
                   value={userMessage}
                   onChange={(e) => setUserMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  onKeyPress={(e) => e.key === 'Enter' && !loading && handleSendMessage()}
                   placeholder="Send instruction to the hive mind..."
                   className="flex-1 bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                  disabled={loading}
                 />
                 <Button 
                   onClick={handleSendMessage}
-                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  disabled={loading || !userMessage.trim()}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
                 >
-                  <Send className="w-4 h-4" />
+                  {loading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
                 </Button>
               </div>
             </CardContent>
