@@ -1,10 +1,11 @@
 import './App.css';
 import { BrowserRouter, Routes, Route, Link, useLocation } from 'react-router-dom';
-import { Shield, Network, Code2, Home, Menu, X } from 'lucide-react';
+import { Shield, Network, Code2, Home, Menu, X, BarChart3 } from 'lucide-react';
 import { useState } from 'react';
 import Dashboard from './pages/Dashboard';
 import HiveMind from './pages/HiveMind';
 import Projects from './pages/Projects';
+import Analytics from './pages/Analytics';
 
 const Navigation = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
