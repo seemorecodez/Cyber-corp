@@ -336,11 +336,15 @@ async def main():
     async with BackendTester() as tester:
         results = await tester.run_all_tests()
         
-        # Save results to file
-        with open('/app/backend_test_results.json', 'w') as f:
+        # Save results to file (in project root or current directory)
+        output_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend_test_results.json')
+        if not os.path.exists(os.path.dirname(output_file)):
+            output_file = 'backend_test_results.json'
+        
+        with open(output_file, 'w') as f:
             json.dump(results, f, indent=2, default=str)
         
-        print(f"\n💾 Test results saved to /app/backend_test_results.json")
+        print(f"\n💾 Test results saved to {output_file}")
         
         # Return exit code based on test results
         failed_count = sum(1 for result in results if not result['success'])
