@@ -57,5 +57,37 @@ We welcome contributions! Please follow these steps:
    ```
 5. Create a pull request and describe your feature.
 
+## Branching Strategy
+
+To ensure organized and effective collaboration, please follow these branching conventions:
+
+### Main Branches
+- **`main`**: The stable production-ready branch. All code in this branch should be thoroughly tested and ready for deployment.
+- **`development`**: The integration branch for new features and ongoing development. This branch serves as a staging area before merging into `main`.
+
+### Feature Branches
+When working on a new feature:
+- Create a branch from `development` with the naming convention: `feature/feature-name`
+- Example: `feature/user-authentication`, `feature/payment-integration`
+- Keep features small and focused on a single functionality
+- Merge back into `development` when the feature is complete and tested
+
+### Bugfix Branches
+When fixing bugs:
+- For hotfixes (urgent production issues): Create from `main` using `bugfix/bug-name` or `hotfix/bug-name`
+- For regular bugs: Create from `development` using `bugfix/bug-name`
+- Example: `bugfix/login-error`, `hotfix/security-patch`
+- Merge back into the originating branch after fixing and testing
+
+### Commit Guidelines
+- **Use meaningful and descriptive commit messages** that clearly explain what changes were made
+- Follow the format: `[Type] Brief description`
+  - Types: `feat:`, `fix:`, `docs:`, `style:`, `refactor:`, `test:`, `chore:`
+  - Example: `feat: Add user profile page`, `fix: Resolve login redirect issue`
+- **Reference related issues** in commit messages when applicable
+  - Example: `fix: Resolve API timeout issue (#42)`
+- Keep commits atomic - each commit should represent a single logical change
+- Write commit messages in the imperative mood (e.g., "Add feature" not "Added feature")
+
 ## License
 This project is licensed under the MIT License.
