@@ -1,10 +1,66 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# IDE and editors
+# ============================================
+# IDEs and Editors
+# ============================================
 .idea/
 .vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-project
+*.sublime-workspace
+.vs/
+*.code-workspace
 
-# Dependencies
+# ============================================
+# Operating System Files
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ============================================
+# Environment Variables and Secrets
+# ============================================
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+*.env
+*.env.local
+*.env.development.local
+*.env.test.local
+*.env.production.local
+*token.json*
+*credentials.json*
+*.pem
+*.key
+*.cert
+secrets.yml
+secrets.yaml
+.secrets/
+
+# ============================================
+# Node.js / Frontend Dependencies
+# ============================================
 node_modules/
 /node_modules
 /.pnp
@@ -15,56 +71,144 @@ node_modules/
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+lerna-debug.log*
 
-# Testing
+# ============================================
+# Frontend Build and Testing
+# ============================================
+# React / CRA
+/build
 /coverage
+*.tsbuildinfo
 
 # Next.js
 /.next/
 /out/
 next-env.d.ts
-*.tsbuildinfo
 
 # Production builds
-/build
 dist/
 dist
+.cache/
 
-# Environment files (comprehensive coverage)
-
-*token.json*
-*credentials.json*
-
-# Logs and debug files
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-dump.rdb
-
-# System files
-.DS_Store
-*.pem
-
-# Python
+# ============================================
+# Python / Backend
+# ============================================
 __pycache__/
-*pyc*
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
 venv/
 .venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*/
 
-# Development tools
+# Python package files
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.manifest
+*.spec
+
+# PyInstaller
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# Pyre type checker
+.pyre/
+.pytype/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ============================================
+# Logs and Debug Files
+# ============================================
+*.log
+*.log.*
+logs/
+*.pid
+*.seed
+*.pid.lock
+dump.rdb
+redis-dump.rdb
+
+# ============================================
+# Databases
+# ============================================
+*.db
+*.sqlite
+*.sqlite3
+agenthub/agents/youtube/db
+data/
+
+# ============================================
+# Development Tools
+# ============================================
 chainlit.md
 .chainlit
-.ipynb_checkpoints/
 .ac
 
+# ============================================
 # Deployment
+# ============================================
 .vercel
+.netlify
+.firebase/
+.amplify/
 
-# Data and databases
-agenthub/agents/youtube/db
-
-# Archive files and large assets
+# ============================================
+# Archive Files and Large Assets
+# ============================================
 **/*.zip
 **/*.tar.gz
 **/*.tar
@@ -72,26 +216,20 @@ agenthub/agents/youtube/db
 *.pack
 *.deb
 *.dylib
+*.rar
+*.7z
 
-# Build caches
-.cache/
+# ============================================
+# Mobile Development
+# ============================================
+android-sdk/
 
-# Mobile development
-android-sdk/ -e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/5.pack
--e 
-# Environment files
-*.env
-*.env.*
--e 
-# Environment files
-*.env
-*.env.*
-frontend/node_modules/.cache/default-development/0.pack
--e 
-# Environment files
-*.env
-*.env.*
+# ============================================
+# Temporary Files
+# ============================================
+tmp/
+temp/
+*.tmp
+*.temp
+*.bak
+*.backup
