@@ -1,7 +1,6 @@
 import os
 from dotenv import load_dotenv
 from emergentintegrations.llm.chat import LlmChat, UserMessage
-import asyncio
 import uuid
 from typing import Dict, Optional
 import logging
@@ -10,10 +9,11 @@ load_dotenv()
 
 logger = logging.getLogger(__name__)
 
+
 class AIAgent:
     """Individual AI Agent with specific specialization"""
-    
-    def __init__(self, agent_id: str, name: str, agent_type: str, 
+
+    def __init__(self, agent_id: str, name: str, agent_type: str,
                  model_provider: str, model_name: str, specialization: list):
         self.agent_id = agent_id
         self.name = name
@@ -22,10 +22,10 @@ class AIAgent:
         self.model_name = model_name
         self.specialization = specialization
         self.api_key = os.environ.get('EMERGENT_LLM_KEY')
-        
+
         # Define system prompts based on agent type
         self.system_prompt = self._get_system_prompt()
-        
+
     def _get_system_prompt(self) -> str:
         prompts = {
             "Security Analyst": (
@@ -60,27 +60,27 @@ class AIAgent:
             )
         }
         return prompts.get(self.agent_type, "You are a helpful AI assistant.")
-    
+
     async def chat(self, message: str, session_id: Optional[str] = None) -> str:
         """Send a message to this agent and get response"""
         try:
             if not session_id:
                 session_id = str(uuid.uuid4())
-            
+
             chat = LlmChat(
                 api_key=self.api_key,
                 session_id=session_id,
                 system_message=self.system_prompt
             ).with_model(self.model_provider, self.model_name)
-            
+
             user_message = UserMessage(text=message)
             response = await chat.send_message(user_message)
-            
+
             return response
         except Exception as e:
             logger.error(f"Error in agent {self.name} chat: {str(e)}")
             return f"Error processing request: {str(e)}"
-    
+
     async def process_task(self, task_title: str, task_description: str) -> str:
         """Process a task and return results"""
         prompt = f"""Task: {task_title}
@@ -94,17 +94,17 @@ Please analyze this task based on your expertise as a {self.agent_type} and prov
 4. Any risks or considerations
 
 Provide a comprehensive but concise response."""
-        
+
         return await self.chat(prompt)
 
 
 class HiveMindOrchestrator:
     """Orchestrates multiple AI agents working together"""
-    
+
     def __init__(self):
         self.agents: Dict[str, AIAgent] = {}
         self._initialize_agents()
-    
+
     def _initialize_agents(self):
         """Initialize the 6 specialized agents"""
         agent_configs = [
@@ -157,7 +157,7 @@ class HiveMindOrchestrator:
                 "specialization": ["GDPR", "HIPAA", "SOC 2", "ISO 27001"]
             }
         ]
-        
+
         for config in agent_configs:
             agent = AIAgent(
                 agent_id=config["agent_id"],
@@ -168,37 +168,37 @@ class HiveMindOrchestrator:
                 specialization=config["specialization"]
             )
             self.agents[config["agent_id"]] = agent
-    
+
     def get_agent(self, agent_id: str) -> Optional[AIAgent]:
         """Get agent by ID"""
         return self.agents.get(agent_id)
-    
+
     def get_all_agents(self) -> Dict[str, AIAgent]:
         """Get all agents"""
         return self.agents
-    
+
     async def broadcast_to_hive(self, message: str) -> dict:
         """Broadcast message to all agents and get collaborative response"""
         responses = {}
-        
+
         # Select primary agent based on message content
         primary_agent_id = self._select_primary_agent(message)
         primary_agent = self.agents[primary_agent_id]
-        
+
         # Get primary response
         primary_response = await primary_agent.chat(message)
         responses[primary_agent.name] = primary_response
-        
+
         return {
             "primary_agent": primary_agent.name,
             "primary_response": primary_response,
             "all_responses": responses
         }
-    
+
     def _select_primary_agent(self, message: str) -> str:
         """Select best agent based on message content"""
         message_lower = message.lower()
-        
+
         if any(word in message_lower for word in ["security", "threat", "vulnerability", "attack"]):
             return "agent-1"  # Sentinel
         elif any(word in message_lower for word in ["code", "develop", "build", "implement"]):
@@ -211,6 +211,7 @@ class HiveMindOrchestrator:
             return "agent-3"  # Cipher
         else:
             return "agent-1"  # Default to Sentinel
+
 
 # Global orchestrator instance
 orchestrator = HiveMindOrchestrator()

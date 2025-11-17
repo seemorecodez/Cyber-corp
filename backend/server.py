@@ -1,5 +1,4 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Query
-from fastapi.encoders import jsonable_encoder
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -7,15 +6,15 @@ import socketio
 import os
 import logging
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime, timedelta
 import asyncio
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 import random
 
 from models import (
-    Agent, Task, TaskCreate, HiveMessage, HiveBroadcast,
-    Project, Activity, Certification, ChatMessage, ChatResponse
+    Task, TaskCreate, HiveMessage, HiveBroadcast,
+    Activity, ChatMessage, ChatResponse
 )
 from agent_system import orchestrator
 from security_engine import security_analyzer
@@ -51,18 +50,23 @@ scheduler = AsyncIOScheduler()
 metrics_engine = None
 
 # Helper functions
+
+
 def clean_mongo_doc(doc):
     """Remove MongoDB _id field from document"""
     if doc and '_id' in doc:
         doc.pop('_id')
     return doc
 
+
 def clean_mongo_docs(docs):
     """Remove MongoDB _id field from list of documents"""
     return [clean_mongo_doc(doc) for doc in docs]
 
+
 # WebSocket connection management
 active_connections = set()
+
 
 @sio.event
 async def connect(sid, environ):
@@ -71,11 +75,13 @@ async def connect(sid, environ):
     await sio.emit('connection_established', {'status': 'connected', 'sid': sid}, room=sid)
     logging.info(f"Client {sid} connected")
 
+
 @sio.event
 async def disconnect(sid):
     """Handle client disconnection"""
     active_connections.discard(sid)
     logging.info(f"Client {sid} disconnected")
+
 
 @sio.event
 async def subscribe_updates(sid, data):
@@ -83,11 +89,14 @@ async def subscribe_updates(sid, data):
     await sio.enter_room(sid, 'updates')
     await sio.emit('subscribed', {'message': 'Subscribed to updates'}, room=sid)
 
+
 async def broadcast_update(event_type: str, data: dict):
     """Broadcast update to all connected clients"""
     await sio.emit('update', {'type': event_type, 'data': data}, room='updates')
 
 # Initialize database with default data
+
+
 async def initialize_database():
     """Initialize database with default agents and data"""
     try:
@@ -186,30 +195,60 @@ async def initialize_database():
                 }
             ]
             await db.agents.insert_many(agents_data)
-            
+
             # Initialize certifications
-            certifications_data = [
-                {"name": "CISSP", "progress": 87, "status": "in_progress", "total_modules": 8, "completed_modules": 7, "last_updated": datetime.utcnow()},
-                {"name": "CEH", "progress": 100, "status": "certified", "total_modules": 20, "completed_modules": 20, "last_updated": datetime.utcnow()},
-                {"name": "OSCP", "progress": 62, "status": "in_progress", "total_modules": 12, "completed_modules": 7, "last_updated": datetime.utcnow()},
-                {"name": "CISM", "progress": 100, "status": "certified", "total_modules": 4, "completed_modules": 4, "last_updated": datetime.utcnow()},
-                {"name": "CompTIA Security+", "progress": 100, "status": "certified", "total_modules": 6, "completed_modules": 6, "last_updated": datetime.utcnow()},
-                {"name": "AWS Security", "progress": 45, "status": "in_progress", "total_modules": 10, "completed_modules": 4, "last_updated": datetime.utcnow()}
-            ]
+            certifications_data = [{"name": "CISSP",
+                                    "progress": 87,
+                                    "status": "in_progress",
+                                    "total_modules": 8,
+                                    "completed_modules": 7,
+                                    "last_updated": datetime.utcnow()},
+                                   {"name": "CEH",
+                                    "progress": 100,
+                                    "status": "certified",
+                                    "total_modules": 20,
+                                    "completed_modules": 20,
+                                    "last_updated": datetime.utcnow()},
+                                   {"name": "OSCP",
+                                    "progress": 62,
+                                    "status": "in_progress",
+                                    "total_modules": 12,
+                                    "completed_modules": 7,
+                                    "last_updated": datetime.utcnow()},
+                                   {"name": "CISM",
+                                    "progress": 100,
+                                    "status": "certified",
+                                    "total_modules": 4,
+                                    "completed_modules": 4,
+                                    "last_updated": datetime.utcnow()},
+                                   {"name": "CompTIA Security+",
+                                    "progress": 100,
+                                    "status": "certified",
+                                    "total_modules": 6,
+                                    "completed_modules": 6,
+                                    "last_updated": datetime.utcnow()},
+                                   {"name": "AWS Security",
+                                    "progress": 45,
+                                    "status": "in_progress",
+                                    "total_modules": 10,
+                                    "completed_modules": 4,
+                                    "last_updated": datetime.utcnow()}]
             await db.certifications.insert_many(certifications_data)
-            
+
             logging.info("Database initialized with default data")
     except Exception as e:
         logging.error(f"Error initializing database: {str(e)}")
 
 # Scheduled tasks
+
+
 async def generate_agent_activity():
     """Generate random agent activities periodically"""
     try:
         agents = await db.agents.find().to_list(100)
         if not agents:
             return
-            
+
         agent = random.choice(agents)
         actions = [
             "Analyzed security log patterns",
@@ -221,22 +260,23 @@ async def generate_agent_activity():
             "Updated encryption protocols",
             "Scanned for vulnerabilities"
         ]
-        
+
         activity = Activity(
             agent_id=agent["agent_id"],
             action=random.choice(actions),
             activity_type=random.choice(["info", "success"])
         )
-        
+
         await db.activities.insert_one(activity.dict())
-        
+
         # Broadcast to connected clients
         activity_data = activity.dict()
         activity_data["agent_name"] = agent["name"]
         await broadcast_update("new_activity", activity_data)
-        
+
     except Exception as e:
         logging.error(f"Error generating activity: {str(e)}")
+
 
 async def update_certification_progress():
     """Update certification progress periodically"""
@@ -246,31 +286,33 @@ async def update_certification_progress():
             if cert["progress"] < 100 and random.random() < 0.3:  # 30% chance to progress
                 new_progress = min(100, cert["progress"] + random.randint(1, 5))
                 completed_modules = int((new_progress / 100) * cert["total_modules"])
-                
+
                 update_data = {
                     "progress": new_progress,
                     "completed_modules": completed_modules,
                     "last_updated": datetime.utcnow()
                 }
-                
+
                 if new_progress >= 100:
                     update_data["status"] = "certified"
-                
+
                 await db.certifications.update_one(
                     {"name": cert["name"]},
                     {"$set": update_data}
                 )
-                
+
                 await broadcast_update("certification_progress", {
                     "name": cert["name"],
                     "progress": new_progress,
                     "status": update_data.get("status", "in_progress")
                 })
-                
+
     except Exception as e:
         logging.error(f"Error updating certifications: {str(e)}")
 
 # Agent Endpoints with real-time updates
+
+
 @api_router.get("/agents")
 async def get_agents():
     """Get all AI agents with their current status"""
@@ -294,6 +336,7 @@ async def get_agents():
         result.append(agent)
     return result
 
+
 @api_router.get("/agents/{agent_id}")
 async def get_agent(agent_id: str):
     """Get specific agent details"""
@@ -302,27 +345,28 @@ async def get_agent(agent_id: str):
         raise HTTPException(status_code=404, detail="Agent not found")
     return clean_mongo_doc(agent)
 
+
 @api_router.post("/agents/{agent_id}/chat")
 async def chat_with_agent(agent_id: str, message: ChatMessage):
     """Chat with a specific AI agent"""
     agent_data = await db.agents.find_one({"agent_id": agent_id})
     if not agent_data:
         raise HTTPException(status_code=404, detail="Agent not found")
-    
+
     ai_agent = orchestrator.get_agent(agent_id)
     if not ai_agent:
         raise HTTPException(status_code=500, detail="Agent not initialized")
-    
+
     try:
         response = await ai_agent.chat(message.message, message.session_id)
-        
+
         activity = Activity(
             agent_id=agent_id,
             action=f"Responded to user query: {message.message[:50]}...",
             activity_type="info"
         )
         await db.activities.insert_one(activity.dict())
-        
+
         return ChatResponse(
             response=response,
             agent_name=agent_data["name"]
@@ -331,6 +375,8 @@ async def chat_with_agent(agent_id: str, message: ChatMessage):
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 # Task Endpoints
+
+
 @api_router.get("/tasks")
 async def get_tasks(
     status: Optional[str] = Query(None),
@@ -345,22 +391,23 @@ async def get_tasks(
         query["priority"] = priority
     if agent_id:
         query["assigned_agent_id"] = agent_id
-    
+
     tasks = await db.tasks.find(query).sort("created_at", -1).limit(50).to_list(50)
     tasks = clean_mongo_docs(tasks)
-    
+
     for task in tasks:
         if task.get("assigned_agent_id"):
             agent = await db.agents.find_one({"agent_id": task["assigned_agent_id"]})
             task["agent_name"] = agent.get("name") if agent else "Unknown"
-    
+
     return tasks
+
 
 @api_router.post("/tasks")
 async def create_task(task: TaskCreate):
     """Create a new task and auto-assign to best agent"""
     task_lower = task.title.lower() + " " + task.description.lower()
-    
+
     if any(word in task_lower for word in ["security", "threat", "vulnerability"]):
         agent_id = "agent-1"
     elif any(word in task_lower for word in ["code", "develop", "build"]):
@@ -371,7 +418,7 @@ async def create_task(task: TaskCreate):
         agent_id = "agent-6"
     else:
         agent_id = "agent-1"
-    
+
     new_task = Task(
         title=task.title,
         description=task.description,
@@ -380,21 +427,22 @@ async def create_task(task: TaskCreate):
         status="in_progress",
         eta_minutes=120
     )
-    
+
     await db.tasks.insert_one(new_task.dict())
     await db.agents.update_one(
         {"agent_id": agent_id},
         {"$set": {"current_task_id": new_task.task_id}}
     )
-    
+
     # Broadcast new task
     task_data = new_task.dict()
     agent = await db.agents.find_one({"agent_id": agent_id})
     task_data["agent_name"] = agent.get("name") if agent else "Unknown"
     await broadcast_update("new_task", task_data)
-    
+
     asyncio.create_task(process_task_background(new_task.task_id, agent_id))
     return new_task
+
 
 async def process_task_background(task_id: str, agent_id: str):
     """Background task processor with real-time progress updates"""
@@ -402,11 +450,11 @@ async def process_task_background(task_id: str, agent_id: str):
         task = await db.tasks.find_one({"task_id": task_id})
         if not task:
             return
-        
+
         ai_agent = orchestrator.get_agent(agent_id)
         if not ai_agent:
             return
-        
+
         for progress in [25, 50, 75]:
             await asyncio.sleep(2)
             await db.tasks.update_one(
@@ -414,9 +462,9 @@ async def process_task_background(task_id: str, agent_id: str):
                 {"$set": {"progress": progress}}
             )
             await broadcast_update("task_progress", {"task_id": task_id, "progress": progress})
-        
+
         result = await ai_agent.process_task(task["title"], task["description"])
-        
+
         await db.tasks.update_one(
             {"task_id": task_id},
             {
@@ -428,7 +476,7 @@ async def process_task_background(task_id: str, agent_id: str):
                 }
             }
         )
-        
+
         await db.agents.update_one(
             {"agent_id": agent_id},
             {
@@ -436,7 +484,7 @@ async def process_task_background(task_id: str, agent_id: str):
                 "$inc": {"tasks_completed": 1}
             }
         )
-        
+
         agent_data = await db.agents.find_one({"agent_id": agent_id})
         activity = Activity(
             agent_id=agent_id,
@@ -444,9 +492,9 @@ async def process_task_background(task_id: str, agent_id: str):
             activity_type="success"
         )
         await db.activities.insert_one(activity.dict())
-        
+
         await broadcast_update("task_completed", {"task_id": task_id, "agent_name": agent_data.get("name")})
-        
+
     except Exception as e:
         logging.error(f"Error processing task {task_id}: {str(e)}")
         await db.tasks.update_one(
@@ -455,30 +503,33 @@ async def process_task_background(task_id: str, agent_id: str):
         )
 
 # Hive Mind Endpoints
+
+
 @api_router.get("/hive/messages")
 async def get_hive_messages(limit: int = Query(50)):
     """Get recent inter-agent messages"""
     messages = await db.hive_messages.find().sort("timestamp", -1).limit(limit).to_list(limit)
     messages = clean_mongo_docs(messages)
-    
+
     for msg in messages:
         from_agent = await db.agents.find_one({"agent_id": msg["from_agent_id"]})
         msg["from_agent_name"] = from_agent.get("name") if from_agent else "System"
-        
+
         if msg["to_agent_id"] == "all":
             msg["to_agent_name"] = "All"
         else:
             to_agent = await db.agents.find_one({"agent_id": msg["to_agent_id"]})
             msg["to_agent_name"] = to_agent.get("name") if to_agent else "Unknown"
-    
+
     return list(reversed(messages))
+
 
 @api_router.post("/hive/broadcast")
 async def broadcast_to_hive(broadcast: HiveBroadcast):
     """User broadcasts message to hive mind"""
     try:
         result = await orchestrator.broadcast_to_hive(broadcast.message)
-        
+
         hive_msg = HiveMessage(
             from_agent_id="system",
             to_agent_id="all",
@@ -486,7 +537,7 @@ async def broadcast_to_hive(broadcast: HiveBroadcast):
             message_type="request"
         )
         await db.hive_messages.insert_one(hive_msg.dict())
-        
+
         response_msg = HiveMessage(
             from_agent_id=result.get("primary_agent", "agent-1"),
             to_agent_id="system",
@@ -494,14 +545,16 @@ async def broadcast_to_hive(broadcast: HiveBroadcast):
             message_type="info"
         )
         await db.hive_messages.insert_one(response_msg.dict())
-        
+
         await broadcast_update("new_hive_message", response_msg.dict())
-        
+
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
 # Analytics Endpoints with REAL DATA
+
+
 @api_router.get("/analytics/dashboard")
 async def get_dashboard_analytics():
     """Get comprehensive dashboard analytics from REAL data"""
@@ -510,17 +563,18 @@ async def get_dashboard_analytics():
         completed_tasks = await db.tasks.count_documents({"status": "completed"})
         in_progress_tasks = await db.tasks.count_documents({"status": "in_progress"})
         failed_tasks = await db.tasks.count_documents({"status": "failed"})
-        
+
         agents_data = await db.agents.find().to_list(100)
         total_tasks_completed = sum(agent.get("tasks_completed", 0) for agent in agents_data)
-        avg_success_rate = sum(agent.get("success_rate", 0) for agent in agents_data) / len(agents_data) if agents_data else 0
-        
+        avg_success_rate = sum(agent.get("success_rate", 0)
+                               for agent in agents_data) / len(agents_data) if agents_data else 0
+
         last_24h = datetime.utcnow() - timedelta(hours=24)
         recent_activities = await db.activities.count_documents({"timestamp": {"$gte": last_24h}})
-        
+
         certified_count = await db.certifications.count_documents({"status": "certified"})
         in_progress_certs = await db.certifications.count_documents({"status": "in_progress"})
-        
+
         return {
             "tasks": {
                 "total": total_tasks,
@@ -546,34 +600,35 @@ async def get_dashboard_analytics():
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
 
+
 @api_router.get("/analytics/agent-performance")
 async def get_agent_performance():
     """Get detailed agent performance metrics from REAL data"""
     global metrics_engine
     if not metrics_engine:
         metrics_engine = MetricsEngine(db)
-    
+
     agents = await db.agents.find().to_list(100)
     performance_data = []
-    
+
     for agent in agents:
         agent_id = agent["agent_id"]
-        
+
         agent_tasks = await db.tasks.find({"assigned_agent_id": agent_id}).to_list(1000)
         completed = len([t for t in agent_tasks if t.get("status") == "completed"])
         failed = len([t for t in agent_tasks if t.get("status") == "failed"])
-        
+
         completion_times = []
         for task in agent_tasks:
             if task.get("completed_at") and task.get("created_at"):
                 duration = (task["completed_at"] - task["created_at"]).total_seconds() / 60
                 completion_times.append(duration)
-        
+
         avg_completion_time = sum(completion_times) / len(completion_times) if completion_times else 0
-        
+
         # Get efficiency metrics
         efficiency = await metrics_engine.calculate_agent_efficiency(agent_id)
-        
+
         performance_data.append({
             "agent_id": agent_id,
             "name": agent["name"],
@@ -585,10 +640,12 @@ async def get_agent_performance():
             "efficiency_score": efficiency.get("efficiency_score", 0),
             "quality_score": efficiency.get("quality_score", 0)
         })
-    
+
     return performance_data
 
 # Advanced Search and Filtering
+
+
 @api_router.get("/search")
 async def global_search(
     query: str = Query(..., min_length=1),
@@ -602,9 +659,9 @@ async def global_search(
         "activities": [],
         "messages": []
     }
-    
+
     search_regex = {"$regex": query, "$options": "i"}
-    
+
     if not entity_type or entity_type == "tasks":
         tasks = await db.tasks.find({
             "$or": [
@@ -614,7 +671,7 @@ async def global_search(
             ]
         }).limit(limit).to_list(limit)
         results["tasks"] = clean_mongo_docs(tasks)
-    
+
     if not entity_type or entity_type == "agents":
         agents = await db.agents.find({
             "$or": [
@@ -624,39 +681,43 @@ async def global_search(
             ]
         }).limit(limit).to_list(limit)
         results["agents"] = clean_mongo_docs(agents)
-    
+
     if not entity_type or entity_type == "activities":
         activities = await db.activities.find({
             "action": search_regex
         }).limit(limit).to_list(limit)
         results["activities"] = clean_mongo_docs(activities)
-    
+
     if not entity_type or entity_type == "messages":
         messages = await db.hive_messages.find({
             "message": search_regex
         }).limit(limit).to_list(limit)
         results["messages"] = clean_mongo_docs(messages)
-    
+
     return results
 
 # Other Endpoints
+
+
 @api_router.get("/activities")
 async def get_activities(limit: int = Query(20)):
     """Get recent activities"""
     activities = await db.activities.find().sort("timestamp", -1).limit(limit).to_list(limit)
     activities = clean_mongo_docs(activities)
-    
+
     for activity in activities:
         agent = await db.agents.find_one({"agent_id": activity["agent_id"]})
         activity["agent_name"] = agent.get("name") if agent else "Unknown"
-    
+
     return activities
+
 
 @api_router.get("/certifications")
 async def get_certifications():
     """Get all certifications with progress"""
     certifications = await db.certifications.find().to_list(100)
     return clean_mongo_docs(certifications)
+
 
 @api_router.get("/metrics/security")
 async def get_security_metrics():
@@ -666,6 +727,7 @@ async def get_security_metrics():
         metrics_engine = MetricsEngine(db)
     return await metrics_engine.calculate_security_metrics()
 
+
 @api_router.get("/metrics/development")
 async def get_development_metrics():
     """Get REAL development metrics calculated from actual data"""
@@ -674,13 +736,14 @@ async def get_development_metrics():
         metrics_engine = MetricsEngine(db)
     return await metrics_engine.calculate_development_metrics()
 
+
 @api_router.get("/health")
 async def health_check():
     """System health check with REAL metrics"""
     global metrics_engine
     if not metrics_engine:
         metrics_engine = MetricsEngine(db)
-    
+
     try:
         health_data = await metrics_engine.get_system_health()
         return {
@@ -692,17 +755,19 @@ async def health_check():
         raise HTTPException(status_code=503, detail=f"Service unhealthy: {str(e)}")
 
 # Security Scanning Endpoints
+
+
 @api_router.post("/security/scan-code")
 async def scan_code(data: dict):
     """Scan code for vulnerabilities"""
     code = data.get('code', '')
     language = data.get('language', 'python')
-    
+
     if not code:
         raise HTTPException(status_code=400, detail="Code is required")
-    
+
     result = await security_analyzer.scan_code(code, language)
-    
+
     # Log scan as activity
     activity = Activity(
         agent_id="agent-1",  # Sentinel
@@ -710,14 +775,15 @@ async def scan_code(data: dict):
         activity_type="alert" if result['total_found'] > 0 else "success"
     )
     await db.activities.insert_one(activity.dict())
-    
+
     return result
+
 
 @api_router.post("/security/detect-threats")
 async def detect_threats(data: dict):
     """Real-time threat detection"""
     result = await security_analyzer.detect_threats(data)
-    
+
     if result['threats_detected'] > 0:
         activity = Activity(
             agent_id="agent-1",
@@ -725,33 +791,36 @@ async def detect_threats(data: dict):
             activity_type="alert"
         )
         await db.activities.insert_one(activity.dict())
-    
+
     return result
+
 
 @api_router.post("/security/analyze-traffic")
 async def analyze_traffic(data: dict):
     """Analyze network traffic"""
     traffic_data = data.get('traffic', [])
     result = await security_analyzer.analyze_network_traffic(traffic_data)
-    
+
     return result
+
 
 @api_router.post("/security/check-compliance")
 async def check_compliance(data: dict):
     """Check compliance with standards"""
     system_config = data.get('config', {})
     standards = data.get('standards', ['GDPR', 'HIPAA', 'SOC2', 'ISO27001'])
-    
+
     result = await security_analyzer.check_compliance(system_config, standards)
-    
+
     activity = Activity(
         agent_id="agent-6",  # Guardian
         action=f"Compliance check: {result['overall_score']:.1f}% compliant",
         activity_type="success" if result['overall_score'] >= 80 else "warning"
     )
     await db.activities.insert_one(activity.dict())
-    
+
     return result
+
 
 @api_router.get("/")
 async def root():
@@ -788,16 +857,19 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Startup/Shutdown events
+
+
 @app.on_event("startup")
 async def startup_db_client():
     await initialize_database()
-    
+
     # Start scheduled tasks
     scheduler.add_job(generate_agent_activity, 'interval', seconds=30)
     scheduler.add_job(update_certification_progress, 'interval', minutes=2)
     scheduler.start()
-    
+
     logger.info("AI Agent system initialized with real-time features")
+
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

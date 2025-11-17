@@ -4,6 +4,8 @@ from datetime import datetime
 import uuid
 
 # Agent Models
+
+
 class Agent(BaseModel):
     agent_id: str = Field(default_factory=lambda: f"agent-{uuid.uuid4().hex[:8]}")
     name: str
@@ -20,10 +22,13 @@ class Agent(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 # Task Models
+
+
 class TaskCreate(BaseModel):
     title: str
     description: str
     priority: str = "medium"  # critical, high, medium, low
+
 
 class Task(BaseModel):
     task_id: str = Field(default_factory=lambda: f"task-{uuid.uuid4().hex[:8]}")
@@ -40,6 +45,8 @@ class Task(BaseModel):
     completed_at: Optional[datetime] = None
 
 # Hive Mind Message Models
+
+
 class HiveMessage(BaseModel):
     message_id: str = Field(default_factory=lambda: f"msg-{uuid.uuid4().hex[:8]}")
     from_agent_id: str
@@ -49,10 +56,13 @@ class HiveMessage(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
     read: bool = False
 
+
 class HiveBroadcast(BaseModel):
     message: str
 
 # Project Models
+
+
 class Project(BaseModel):
     project_id: str = Field(default_factory=lambda: f"proj-{uuid.uuid4().hex[:8]}")
     name: str
@@ -67,6 +77,8 @@ class Project(BaseModel):
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 # Activity Models
+
+
 class Activity(BaseModel):
     activity_id: str = Field(default_factory=lambda: f"act-{uuid.uuid4().hex[:8]}")
     agent_id: str
@@ -75,6 +87,8 @@ class Activity(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
 # Certification Models
+
+
 class Certification(BaseModel):
     name: str
     progress: int
@@ -84,9 +98,12 @@ class Certification(BaseModel):
     last_updated: datetime = Field(default_factory=datetime.utcnow)
 
 # Chat Models
+
+
 class ChatMessage(BaseModel):
     message: str
     session_id: Optional[str] = None
+
 
 class ChatResponse(BaseModel):
     response: str
