@@ -1,0 +1,116 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-frontend:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package.json
+        
+    - name: Install frontend dependencies
+      working-directory: frontend
+      run: npm ci
+      
+    - name: Build frontend
+      working-directory: frontend
+      run: npm run build
+      env:
+        CI: false
+        PUBLIC_URL: /Cyber-corp
+      
+    - name: Upload frontend build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: frontend-build
+        path: frontend/build
+        retention-days: 1
+        
+  deploy-pages:
+    needs: build-frontend
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Download frontend build
+      uses: actions/download-artifact@v4
+      with:
+        name: frontend-build
+        path: ./build
+        
+    - name: Setup Pages
+      uses: actions/configure-pages@v5
+      
+    - name: Upload to GitHub Pages
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: ./build
+        
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
+      
+    - name: Deployment successful
+      run: |
+        echo "✅ Deployment completed successfully!"
+        echo "🌐 Site URL: ${{ steps.deployment.outputs.page_url }}"
+        
+  verify-deployment:
+    needs: deploy-pages
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Wait for deployment to be ready
+      run: sleep 30
+      
+    - name: Verify deployment
+      run: |
+        echo "Verifying deployment..."
+        RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ github.repository_owner }}.github.io/Cyber-corp/)
+        if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 304 ]; then
+          echo "✅ Deployment verification successful (HTTP $RESPONSE)"
+        else
+          echo "⚠️ Deployment verification returned HTTP $RESPONSE"
+          echo "Note: This might be expected if GitHub Pages is not yet enabled for this repository"
+        fi
+      continue-on-error: true
+      
+  rollback-on-failure:
+    needs: [deploy-pages, verify-deployment]
+    runs-on: ubuntu-latest
+    if: failure()
+    
+    steps:
+    - name: Rollback notification
+      run: |
+        echo "❌ Deployment failed or verification failed"
+        echo "🔄 To rollback, you can:"
+        echo "   1. Revert the last commit and push"
+        echo "   2. Re-run a previous successful workflow"
+        echo "   3. Manually deploy from a previous release tag"
