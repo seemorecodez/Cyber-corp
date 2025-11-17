@@ -11,7 +11,7 @@ on:
       - 'frontend/package.json'
       - '.github/workflows/security-scan.yml'
       - '.bandit'
-      - 'frontend/eslint.config.js'
+      - 'frontend/eslint.config.mjs'
   push:
     branches: [ main, master, develop ]
     paths:
