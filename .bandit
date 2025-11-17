@@ -1,0 +1,26 @@
+# Bandit configuration for Python security scanning
+# https://bandit.readthedocs.io/en/latest/config.html
+
+[bandit]
+# Exclude test files and virtual environments
+exclude_dirs:
+  - /tests/
+  - /test/
+  - /.venv/
+  - /venv/
+  - /.tox/
+
+# Tests to skip (if any specific tests are causing false positives)
+# Uncomment and add test IDs as needed
+# skips: B101,B601
+
+# Tests to run (leave empty to run all tests)
+tests:
+
+# Set confidence level (LOW, MEDIUM, HIGH)
+# Only report issues with at least this confidence level
+# confidence: MEDIUM
+
+# Set severity level (LOW, MEDIUM, HIGH)
+# Only report issues with at least this severity level
+# severity: MEDIUM
