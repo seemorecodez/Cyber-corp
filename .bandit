@@ -1,0 +1,15 @@
+# Bandit configuration for Python security scanning
+# https://bandit.readthedocs.io/en/latest/config.html
+
+exclude_dirs:
+  - /tests/
+  - /test/
+  - /.venv/
+  - /venv/
+  - /.tox/
+
+# Tests to skip (if any specific tests are causing false positives)
+# Uncomment and add test IDs as needed
+# skips:
+#   - B101
+#   - B601
