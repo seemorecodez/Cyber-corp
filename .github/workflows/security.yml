@@ -1,0 +1,177 @@
+name: Security Scanning
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scans daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  dependency-scan:
+    runs-on: ubuntu-latest
+    name: Dependency Security Scan
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install safety
+      run: pip install safety
+      
+    - name: Scan Python dependencies for vulnerabilities
+      run: |
+        pip install -r backend/requirements.txt
+        safety check --json --output safety-report.json || true
+        safety check || echo "⚠️ Vulnerabilities found in Python dependencies"
+      continue-on-error: true
+      
+    - name: Upload Python security report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: python-security-report
+        path: safety-report.json
+        if-no-files-found: warn
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        
+    - name: Run npm audit on frontend
+      working-directory: frontend
+      run: |
+        npm install --legacy-peer-deps
+        npm audit --json > npm-audit-report.json || true
+        npm audit || echo "⚠️ Vulnerabilities found in npm dependencies"
+      continue-on-error: true
+      
+    - name: Upload npm security report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: npm-security-report
+        path: frontend/npm-audit-report.json
+        if-no-files-found: warn
+  
+  codeql-analysis:
+    runs-on: ubuntu-latest
+    name: CodeQL Security Analysis
+    
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'javascript', 'python' ]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.language }}
+        queries: security-and-quality
+        
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v3
+      
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:${{matrix.language}}"
+  
+  secret-scanning:
+    runs-on: ubuntu-latest
+    name: Secret Detection
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        
+    - name: TruffleHog Secret Scan
+      uses: trufflesecurity/trufflehog@v3.81.9
+      with:
+        path: ./
+        base: ${{ github.event.repository.default_branch }}
+        head: HEAD
+        extra_args: --only-verified
+        
+  bandit-security:
+    runs-on: ubuntu-latest
+    name: Python Security Analysis (Bandit)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install Bandit
+      run: pip install bandit[toml]
+      
+    - name: Run Bandit security scan
+      run: |
+        bandit -r backend/ -f json -o bandit-report.json || true
+        bandit -r backend/ -ll || echo "⚠️ Security issues found by Bandit"
+      continue-on-error: true
+      
+    - name: Upload Bandit report
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: bandit-security-report
+        path: bandit-report.json
+        if-no-files-found: warn
+  
+  license-compliance:
+    runs-on: ubuntu-latest
+    name: License Compliance Check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        
+    - name: Install pip-licenses
+      run: pip install pip-licenses
+      
+    - name: Check Python licenses
+      run: |
+        pip install -r backend/requirements.txt
+        pip-licenses --format=json --output-file=python-licenses.json
+        pip-licenses --summary
+      
+    - name: Upload license report
+      uses: actions/upload-artifact@v4
+      with:
+        name: license-report
+        path: python-licenses.json
