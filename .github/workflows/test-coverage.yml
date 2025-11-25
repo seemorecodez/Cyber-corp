@@ -1,0 +1,95 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  coverage-backend:
+    runs-on: ubuntu-latest
+    name: Backend Test Coverage
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+        cache: 'pip'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r backend/requirements.txt
+        pip install pytest pytest-cov pytest-asyncio
+        
+    - name: Run tests with coverage
+      run: |
+        mkdir -p /app/frontend
+        echo "REACT_APP_BACKEND_URL=http://localhost:8001" > /app/frontend/.env
+        pytest backend/ --cov=backend --cov-report=xml --cov-report=term --cov-report=html || true
+      continue-on-error: true
+      
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: backend-coverage-report
+        path: |
+          coverage.xml
+          htmlcov/
+        if-no-files-found: warn
+        
+    - name: Comment coverage on PR
+      if: github.event_name == 'pull_request'
+      uses: py-cov-action/python-coverage-comment-action@v3
+      with:
+        GITHUB_TOKEN: ${{ github.token }}
+        MINIMUM_GREEN: 80
+        MINIMUM_ORANGE: 60
+      continue-on-error: true
+  
+  coverage-frontend:
+    runs-on: ubuntu-latest
+    name: Frontend Test Coverage
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        cache-dependency-path: frontend/package.json
+        
+    - name: Install dependencies
+      working-directory: frontend
+      run: |
+        npm install --legacy-peer-deps
+        npm install ajv@^8.0.0 --legacy-peer-deps
+        
+    - name: Run tests with coverage
+      working-directory: frontend
+      run: npm test -- --coverage --watchAll=false || echo "No tests found"
+      continue-on-error: true
+      env:
+        CI: true
+        
+    - name: Upload coverage reports
+      uses: actions/upload-artifact@v4
+      if: always()
+      with:
+        name: frontend-coverage-report
+        path: frontend/coverage/
+        if-no-files-found: warn

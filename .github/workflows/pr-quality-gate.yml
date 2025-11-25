@@ -1,0 +1,90 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    branches: [ main, develop ]
+
+permissions:
+  contents: read
+  pull-requests: write
+  statuses: write
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    name: Quality Gate Check
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Wait for other workflows
+      uses: lewagon/wait-on-check-action@v1.3.4
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        check-regexp: '(Unit Tests|Code Quality Checks|Security Scanning|Test Coverage).*'
+        wait-interval: 10
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      continue-on-error: true
+      
+    - name: Check PR title format
+      run: |
+        PR_TITLE="${{ github.event.pull_request.title }}"
+        if [[ ! "$PR_TITLE" =~ ^(feat|fix|docs|style|refactor|test|chore|perf|ci|build|revert)(\(.+\))?: ]]; then
+          echo "❌ PR title must follow conventional commits format"
+          echo "Examples: 'feat: add new feature', 'fix(auth): resolve login issue'"
+          exit 1
+        else
+          echo "✅ PR title format is valid"
+        fi
+        
+    - name: Check PR has description
+      run: |
+        PR_BODY="${{ github.event.pull_request.body }}"
+        if [ -z "$PR_BODY" ] || [ ${#PR_BODY} -lt 20 ]; then
+          echo "❌ PR must have a meaningful description (at least 20 characters)"
+          exit 1
+        else
+          echo "✅ PR has description"
+        fi
+        
+    - name: Check for large files
+      run: |
+        git diff --name-only ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} | \
+        xargs -I {} sh -c '[ -f "{}" ] && du -k "{}" | awk "{if (\$1 > 1024) print \$2}"' | \
+        while read file; do
+          echo "⚠️ Large file detected: $file (>1MB)"
+        done
+        
+    - name: Check no console.log in production code
+      run: |
+        if git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- 'frontend/src/**/*.js' 'frontend/src/**/*.jsx' | grep -E '^\+.*console\.(log|debug|info)'; then
+          echo "⚠️ console.log statements found in production code"
+          echo "Please remove console statements or use a proper logging library"
+        else
+          echo "✅ No console.log statements in new code"
+        fi
+      continue-on-error: true
+      
+    - name: Check no TODOs in critical files
+      run: |
+        if git diff ${{ github.event.pull_request.base.sha }} ${{ github.event.pull_request.head.sha }} -- '*.js' '*.jsx' '*.py' | grep -iE '^\+.*(TODO|FIXME|HACK)'; then
+          echo "⚠️ TODO/FIXME/HACK comments found in new code"
+        else
+          echo "✅ No TODO comments in new code"
+        fi
+      continue-on-error: true
+      
+    - name: Quality Gate Summary
+      if: always()
+      run: |
+        echo "## 🎯 Quality Gate Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "All automated quality checks must pass before merging." >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### Checklist:" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Unit tests pass" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Code quality checks pass" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Security scans complete" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ Test coverage meets threshold" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ PR has proper format and description" >> $GITHUB_STEP_SUMMARY

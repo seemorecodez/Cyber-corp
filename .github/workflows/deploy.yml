@@ -91,15 +91,45 @@ jobs:
     - name: Wait for deployment to be ready
       run: sleep 30
       
-    - name: Verify deployment
+    - name: Verify deployment accessibility
       run: |
         echo "Verifying deployment..."
         RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" https://${{ github.repository_owner }}.github.io/Cyber-corp/)
         if [ "$RESPONSE" -eq 200 ] || [ "$RESPONSE" -eq 304 ]; then
           echo "✅ Deployment verification successful (HTTP $RESPONSE)"
         else
-          echo "⚠️ Deployment verification returned HTTP $RESPONSE"
-          echo "Note: This might be expected if GitHub Pages is not yet enabled for this repository"
+          echo "❌ Deployment verification failed (HTTP $RESPONSE)"
+          echo "Note: If GitHub Pages is not enabled, enable it in Settings → Pages → Source → GitHub Actions"
+          exit 1
+        fi
+        
+    - name: Check for broken links
+      run: |
+        echo "Checking for common resources..."
+        BASE_URL="https://${{ github.repository_owner }}.github.io/Cyber-corp"
+        for path in "" "/index.html" "/static/js/main.*.js" "/static/css/main.*.css"; do
+          URL="${BASE_URL}${path}"
+          RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" "$URL" || echo "000")
+          if [ "$RESPONSE" = "200" ] || [ "$RESPONSE" = "304" ]; then
+            echo "✅ ${URL}: HTTP $RESPONSE"
+          else
+            echo "⚠️ ${URL}: HTTP $RESPONSE"
+          fi
+        done
+      continue-on-error: true
+      
+    - name: Performance check
+      run: |
+        echo "Testing page load time..."
+        START=$(date +%s%N)
+        curl -s https://${{ github.repository_owner }}.github.io/Cyber-corp/ > /dev/null
+        END=$(date +%s%N)
+        DURATION=$((($END - $START) / 1000000))
+        echo "Page load time: ${DURATION}ms"
+        if [ $DURATION -lt 3000 ]; then
+          echo "✅ Performance check passed (< 3s)"
+        else
+          echo "⚠️ Page load time is slow (> 3s)"
         fi
       continue-on-error: true
       
