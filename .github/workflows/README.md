@@ -2,9 +2,25 @@
 
 This directory contains the CI/CD workflows for the Cyber-corp project.
 
+## 🎯 Automation Overview
+
+**7 Workflows** providing comprehensive quality gates, security automation, and deployment:
+
+1. **Unit Tests** - STRICT mode (blocks on failure)
+2. **Code Quality** - ZERO tolerance (no warnings allowed)
+3. **Security Scanning** - Multi-layer security (5 tools)
+4. **Test Coverage** - Coverage tracking with PR comments
+5. **PR Quality Gate** - Enforces standards and aggregates checks
+6. **Deployment** - Automated with enhanced verification
+7. **Scheduled Scans** - Daily security audits
+
+**📚 For complete guide, see [AUTOMATION_GUIDE.md](./AUTOMATION_GUIDE.md)**
+
+---
+
 ## Workflows
 
-### 1. Unit Tests (`unit-tests.yml`)
+### 1. Unit Tests (`unit-tests.yml`) ⚠️ STRICT MODE
 
 **Purpose**: Automates testing for `backend_test.py`
 
@@ -20,9 +36,9 @@ This directory contains the CI/CD workflows for the Cyber-corp project.
 - Runs backend unit tests
 - Uploads test results as artifacts
 
-**Note**: Tests continue even if they fail to allow viewing of test results.
+**⚠️ BREAKING CHANGE**: Tests now BLOCK the PR if they fail. No `continue-on-error` - all tests must pass.
 
-### 2. Code Quality Checks (`code-quality.yml`)
+### 2. Code Quality Checks (`code-quality.yml`) ⚠️ ZERO TOLERANCE
 
 **Purpose**: Ensures code quality standards are maintained
 
@@ -37,19 +53,93 @@ This directory contains the CI/CD workflows for the Cyber-corp project.
 - Runs ESLint on JavaScript/JSX files in the frontend
 - Checks for code quality issues, React best practices, and accessibility concerns
 - Configured with custom rules in `frontend/eslint.config.js`
-- Allows up to 50 warnings before failing
+- **⚠️ CHANGED**: Now requires ZERO warnings (`--max-warnings 0`)
 
 #### Flake8 (Backend)
 - Runs flake8 on Python files in the backend directory
 - Checks for syntax errors and critical issues (E9, F63, F7, F82)
 - Performs complexity and line length checks
 - Also checks `backend_test.py` file
+- **⚠️ CHANGED**: Removed `--exit-zero` and `continue-on-error` - violations now BLOCK
 
-**Note**: Both jobs continue on error to provide visibility into code quality without blocking deployment.
+### 3. Security Scanning (`security.yml`) 🔒 NEW
 
-### 3. Deployment Pipeline (`deploy.yml`)
+**Purpose**: Multi-layer security vulnerability detection
 
-**Purpose**: Automates deployment to GitHub Pages
+**Triggers**:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop` branches
+- Daily at 2 AM UTC (scheduled)
+- Manual dispatch
+
+**What it does**:
+
+#### Dependency Scanning
+- **Python**: Safety tool checks for CVEs in backend dependencies
+- **JavaScript**: npm audit scans frontend packages
+- Uploads security reports as artifacts
+
+#### CodeQL Analysis
+- Static analysis for Python and JavaScript
+- Security-and-quality query suite
+- Results appear in Security tab
+- Checks against OWASP Top 10
+
+#### Secret Detection
+- TruffleHog scans entire git history
+- Detects accidentally committed secrets
+- Only reports verified secrets
+
+#### Bandit Security Linting
+- Python-specific security analysis
+- Detects SQL injection, weak crypto, hardcoded passwords
+- Uploads detailed reports
+
+#### License Compliance
+- Scans all dependencies for license compatibility
+- Generates compliance reports
+
+### 4. Test Coverage (`test-coverage.yml`) 📊 NEW
+
+**Purpose**: Track test coverage metrics
+
+**Triggers**:
+- Push to `main` or `develop` branches
+- Pull requests to `main` or `develop` branches
+- Manual dispatch
+
+**What it does**:
+
+#### Backend Coverage
+- pytest with coverage plugin
+- Generates XML and HTML reports
+- Auto-comments coverage % on PRs
+- Thresholds: 🟢 ≥80%, 🟠 60-79%, 🔴 <60%
+
+#### Frontend Coverage
+- Jest test coverage for React
+- Coverage reports as artifacts
+- Tracks statement, branch, function, line coverage
+
+### 5. PR Quality Gate (`pr-quality-gate.yml`) ✅ NEW
+
+**Purpose**: Enforce PR standards and aggregate all checks
+
+**Triggers**:
+- Pull requests to `main` or `develop` branches
+
+**What it does**:
+- **Conventional Commits**: Validates PR title format (feat:, fix:, etc.)
+- **Description Check**: Requires meaningful description (≥20 chars)
+- **Large File Detection**: Warns about files >1MB
+- **Console Statement Check**: Flags console.log in production code
+- **TODO Detection**: Warns about unfinished work
+- **Workflow Aggregation**: Waits for all checks to complete
+- **Quality Summary**: Auto-generates PR summary with ✅/❌
+
+### 6. Deployment Pipeline (`deploy.yml`) 🚀 ENHANCED
+
+**Purpose**: Automates deployment to GitHub Pages with enhanced verification
 
 **Triggers**:
 - Push to `main` branch only
@@ -71,10 +161,11 @@ This directory contains the CI/CD workflows for the Cyber-corp project.
 4. Deploys to GitHub Pages hosting
 5. Outputs deployment URL
 
-#### Verify Deployment Job
-1. Waits 30 seconds for deployment to propagate
-2. Verifies deployment is accessible via HTTP request
-3. Continues on error (useful if GitHub Pages isn't enabled yet)
+#### Verify Deployment Job 🆕 ENHANCED
+1. **HTTP Status**: Verifies 200/304 response
+2. **Resource Check**: Validates main.js, main.css, index.html exist
+3. **Performance Test**: Measures page load time (should be <3s)
+4. **Link Validation**: Checks critical resources are accessible
 
 #### Rollback on Failure Job
 1. Triggers only if deployment or verification fails
@@ -92,6 +183,10 @@ This directory contains the CI/CD workflows for the Cyber-corp project.
 - Only one deployment at a time
 - Doesn't cancel in-progress deployments
 
+---
+
+---
+
 ## Setup Requirements
 
 ### For Unit Tests
@@ -105,11 +200,62 @@ This directory contains the CI/CD workflows for the Cyber-corp project.
 - Frontend dependencies
 - ESLint configuration in `frontend/eslint.config.js`
 
+### For Security Scanning 🆕
+- Python 3.12 with Safety, Bandit
+- Node.js 20 for npm audit
+- CodeQL enabled (automatic)
+- TruffleHog secret scanning
+- GitHub Advanced Security (for CodeQL results in UI)
+
+### For Test Coverage 🆕
+- Python: pytest, pytest-cov, pytest-asyncio
+- Node.js: Jest (included in react-scripts)
+- PR write permissions for coverage comments
+
 ### For Deployment
 - GitHub Pages must be enabled in repository settings
 - Set GitHub Pages source to "GitHub Actions"
 - Node.js 20
 - Frontend dependencies
+
+---
+
+## 🚨 Breaking Changes
+
+**These workflows now BLOCK PRs instead of just reporting:**
+
+1. **Unit Tests**: Removed `continue-on-error` - tests must pass
+2. **ESLint**: Changed from `--max-warnings 50` to `--max-warnings 0`
+3. **Flake8**: Removed `--exit-zero` - violations cause failures
+
+**Migration Steps:**
+1. Fix all existing test failures before enabling
+2. Address all ESLint warnings in codebase
+3. Fix all flake8 violations in Python code
+4. Then enable branch protection rules
+
+---
+
+## Quick Start
+
+### Enable Branch Protection
+1. Go to Settings → Branches → Add rule
+2. Apply to `main` branch
+3. Enable "Require status checks to pass"
+4. Select all workflow checks
+5. Enable "Require branches to be up to date"
+
+### Enable GitHub Pages
+1. Go to Settings → Pages
+2. Source → "GitHub Actions"
+3. Save
+
+### View Security Results
+1. Security tab → Code scanning alerts (CodeQL)
+2. Security tab → Secret scanning alerts (TruffleHog)
+3. Actions tab → Download artifact reports
+
+---
 
 ## Manual Triggers
 
